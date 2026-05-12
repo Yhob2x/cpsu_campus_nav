@@ -11,7 +11,7 @@ Route::get('/offices', function () {
         'success' => true,
         'data' => Office::all()
     ]);
-});
+})->name('offices.index');
 
 Route::get('/office/{id}', function ($id) {
     $office = Office::where('office_id', $id)->first();
@@ -62,7 +62,7 @@ Route::delete('/offices/{id}', function ($id) {
 Route::get('/footwalks', function () {
     $footwalks = Footwalk::all();
     return response()->json(['success' => true, 'data' => $footwalks]);
-});
+})->name('footwalks.index');
 
 Route::get('/footwalks/{id}', function ($id) {
     $footwalk = Footwalk::find($id);
