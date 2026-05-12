@@ -59,10 +59,26 @@
         .pill-btn{padding:8px 14px;border-radius:20px;border:none;font-weight:600;font-size:0.75rem;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.15s;backdrop-filter:blur(16px);box-shadow:0 3px 12px rgba(0,0,0,0.12)}
         .pill-btn:active{transform:scale(0.95)}.pill-primary{background:#10b981;color:white}.pill-secondary{background:rgba(255,255,255,0.92);color:#3b82f6;border:1px solid rgba(255,255,255,0.5)}.pill-neutral{background:rgba(255,255,255,0.92);color:#475569;border:1px solid rgba(255,255,255,0.5)}
 
-        .legend-bar{position:fixed;bottom:68px;bottom:calc(68px + var(--sab));left:12px;right:12px;z-index:44;pointer-events:none;display:flex;justify-content:center}
-        .legend-scroll{pointer-events:auto;display:flex;gap:5px;overflow-x:auto;padding:5px 10px;background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,0.08);max-width:100%;-webkit-overflow-scrolling:touch}
-        .legend-item{display:flex;align-items:center;gap:4px;font-size:0.6rem;font-weight:600;color:#475569;white-space:nowrap;padding:3px 7px;border-radius:10px;background:#f8fafc;flex-shrink:0}
-        .legend-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        /* OPTIMIZED: Collapsible floating legend for mobile */
+        .legend-container{position:fixed;bottom:68px;bottom:calc(68px + var(--sab));left:8px;right:8px;z-index:44;pointer-events:none}
+        .legend-floating{pointer-events:auto;background:rgba(15,23,42,0.9);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.15);max-width:100%;overflow:hidden;transition:all 0.3s ease}
+        .legend-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;-webkit-user-select:none}
+        .legend-title{color:white;font-size:0.7rem;font-weight:700;display:flex;align-items:center;gap:6px}
+        .legend-title i{font-size:0.65rem;opacity:0.7}
+        .legend-toggle{color:white;font-size:0.7rem;transition:transform 0.3s ease;opacity:0.7}
+        .legend-toggle.open{transform:rotate(180deg)}
+        .legend-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:4px;padding:0 12px;max-height:0;overflow:hidden;transition:all 0.3s ease;opacity:0}
+        .legend-body.open{max-height:120px;padding:0 12px 8px;opacity:1}
+        .legend-tag{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.1);font-size:0.6rem;color:rgba(255,255,255,0.85);white-space:nowrap;font-weight:500}
+        .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.3)}
+        .legend-dot.admin{background:#ef4444}
+        .legend-dot.academic{background:#3b82f6}
+        .legend-dot.facility{background:#10b981}
+        .legend-dot.path{background:transparent;border:2px dashed #3b82f6;width:10px;height:10px}
+        .legend-dot.route{background:transparent;border:2px dashed #10b981;width:10px;height:10px}
+        .legend-dot.walk{background:transparent;border:2px dashed #ef4444;width:10px;height:10px}
+        .legend-dot.conn{background:#f59e0b}
+        .legend-mini{display:flex;gap:4px;flex-wrap:wrap}
 
         .gps-btn{position:fixed;bottom:120px;bottom:calc(120px + var(--sab));right:14px;width:44px;height:44px;border-radius:50%;background:white;box-shadow:0 4px 16px rgba(0,0,0,0.18);cursor:pointer;z-index:44;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#64748b;border:2px solid #e2e8f0;transition:all 0.3s}
         .gps-btn:active{transform:scale(0.9)}.gps-btn.active{background:#10b981;color:white;border-color:#10b981;animation:gpsPulse 2s infinite}
@@ -77,24 +93,39 @@
         .nav-eta-close{width:30px;height:30px;border-radius:50%;background:#fee2e2;border:none;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;transition:all 0.2s ease}
         .nav-eta-close:active{background:#fecaca;transform:scale(0.9)}
 
-        .direction-popup{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:40vh;display:flex;flex-direction:column}
-        .direction-popup.show{transform:translateY(0)}.direction-handle{padding:10px 0;text-align:center;flex-shrink:0}.direction-handle-bar{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto}
-        .direction-content{padding:0 16px 16px;overflow-y:auto;flex:1;padding-bottom:calc(16px + var(--sab))}
-        .direction-step{padding:8px 0;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;color:#475569}.direction-step:last-child{border-bottom:none}.direction-step-icon{width:18px;text-align:center;flex-shrink:0;font-size:0.75rem}
+        .direction-popup{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:45vh;display:flex;flex-direction:column}
+        .direction-popup.show{transform:translateY(0)}.direction-handle{padding:8px 0;text-align:center;flex-shrink:0}.direction-handle-bar{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto}
+        .direction-content{padding:0 16px 12px;overflow-y:auto;flex:1;padding-bottom:calc(12px + var(--sab))}
+        .direction-step{padding:8px 0;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;color:#475569}.direction-step:last-child{border-bottom:none}.direction-step-icon{width:20px;text-align:center;flex-shrink:0;font-size:0.85rem}
 
-        .info-panel{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:42vh;overflow-y:auto;padding:16px;padding-bottom:calc(16px + var(--sab))}
-        .info-panel.show{transform:translateY(0)}.panel-handle{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 12px}
-        .panel-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}.panel-title{font-weight:700;font-size:0.95rem;color:#0f172a}
-        .panel-close{background:#f1f5f9;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.85rem;color:#64748b;display:flex;align-items:center;justify-content:center}.panel-close:active{background:#fee2e2;color:#ef4444}
-        .info-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:8px;margin-bottom:6px;font-size:0.8rem;color:#475569}
-        .info-badge{display:inline-block;background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:10px;font-size:0.65rem;font-weight:700}
-        .nav-btn{width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-top:10px;transition:all 0.15s}.nav-btn:active{background:#1d4ed8;transform:scale(0.98)}
+        /* OPTIMIZED: Better mobile info panel */
+        .info-panel{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,0.2);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:50vh;overflow-y:auto;padding:0}
+        .info-panel.show{transform:translateY(0)}
+        .panel-handle{padding:10px 0;text-align:center;position:sticky;top:0;background:white;z-index:1;border-radius:20px 20px 0 0}
+        .panel-handle-bar{width:36px;height:4px;background:#cbd5e1;border-radius:2px;margin:0 auto}
+        .panel-inner{padding:0 16px 16px;padding-bottom:calc(16px + var(--sab))}
+        .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+        .panel-title-group{flex:1;min-width:0}
+        .panel-title{font-weight:700;font-size:0.95rem;color:#0f172a;line-height:1.2}
+        .panel-subtitle{font-size:0.7rem;color:#64748b;margin-top:2px}
+        .panel-close{background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:0.9rem;color:#64748b;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
+        .panel-close:active{background:#fee2e2;color:#ef4444}
+        .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+        .info-card{background:#f8fafc;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}
+        .info-card-icon{font-size:1.1rem}
+        .info-card-label{font-size:0.6rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+        .info-card-value{font-size:0.8rem;color:#0f172a;font-weight:600}
+        .category-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:0.3px}
+        .badge-admin{background:#fef2f2;color:#dc2626}
+        .badge-academic{background:#eff6ff;color:#2563eb}
+        .badge-facility{background:#ecfdf5;color:#059669}
+        .nav-btn{width:100%;padding:14px;background:#3b82f6;color:white;border:none;border-radius:14px;font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;letter-spacing:0.3px}
+        .nav-btn:active{background:#1d4ed8;transform:scale(0.98)}
 
         .user-marker{width:16px;height:16px;background:#10b981;border-radius:50%;border:3px solid white;box-shadow:0 0 0 3px rgba(16,185,129,0.3);animation:userPulse 2s infinite}
         @keyframes userPulse{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,0.3)}50%{box-shadow:0 0 0 10px rgba(16,185,129,0.06)}}
         .dest-marker{width:20px;height:20px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
         
-        /* Real-time walking marker */
         .walking-live-marker{width:24px;height:24px;background:#f59e0b;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3);animation:walkBounce 0.6s ease-in-out infinite, walkPulse 1.5s ease-in-out infinite}
         @keyframes walkBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
         @keyframes walkPulse{0%,100%{box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3)}50%{box-shadow:0 0 0 12px rgba(245,158,11,0.1), 0 4px 12px rgba(0,0,0,0.3)}}
@@ -106,7 +137,24 @@
         .loading-card{background:white;padding:28px;border-radius:18px;text-align:center}
         .spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}
 
-        @media(min-width:768px){.search-bar{left:20px;transform:none;max-width:360px}.nav-eta-bar{left:20px;transform:none;max-width:360px}.bottom-controls{left:20px;transform:none}.legend-bar{left:20px;right:auto;justify-content:flex-start}.info-panel{left:20px;right:auto;width:360px;border-radius:18px;bottom:20px;transform:translateY(calc(100% + 20px))}.info-panel.show{transform:translateY(0)}.direction-popup{left:20px;right:auto;width:360px;border-radius:18px;bottom:20px;transform:translateY(calc(100% + 20px))}.direction-popup.show{transform:translateY(0)}}
+        .map-low-zoom .leaflet-tooltip{font-size:11px}
+
+        @media(min-width:768px){
+            .search-bar{left:20px;transform:none;max-width:360px}
+            .nav-eta-bar{left:20px;transform:none;max-width:360px}
+            .bottom-controls{left:20px;transform:none}
+            .legend-container{left:20px;right:auto;max-width:320px}
+            .info-panel{left:20px;right:auto;width:380px;border-radius:20px;bottom:20px;transform:translateY(calc(100% + 20px));max-height:55vh}
+            .info-panel.show{transform:translateY(0)}
+            .direction-popup{left:20px;right:auto;width:380px;border-radius:20px;bottom:20px;transform:translateY(calc(100% + 20px))}
+            .direction-popup.show{transform:translateY(0)}
+        }
+        
+        @media(max-height:400px){
+            .search-bar{top:calc(40px + var(--sat))}
+            .legend-container{display:none}
+            .info-panel{max-height:70vh}
+        }
     </style>
 </head>
 <body>
@@ -145,23 +193,44 @@
         <button onclick="resetMap()" class="pill-btn pill-neutral"><i class="fas fa-home"></i> Reset</button>
     </div>
 
-    <div class="legend-bar"><div class="legend-scroll">
-        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div>Admin</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>Academic</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div>Facility</div>
-        <div class="legend-item"><i class="fas fa-road" style="color:#3b82f6;font-size:0.55rem;"></i>Footwalk</div>
-        <div class="legend-item"><i class="fas fa-route" style="color:#10b981;font-size:0.55rem;"></i>Route</div>
-        <div class="legend-item"><i class="fas fa-arrow-right" style="color:#ef4444;font-size:0.55rem;"></i>Walk</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div>Link</div>
-    </div></div>
+    <!-- OPTIMIZED: Collapsible floating legend -->
+    <div class="legend-container">
+        <div class="legend-floating" id="legendFloating">
+            <div class="legend-header" onclick="toggleLegend()">
+                <span class="legend-title"><i class="fas fa-map-pin"></i> Map Legend</span>
+                <i class="fas fa-chevron-down legend-toggle open" id="legendToggle"></i>
+            </div>
+            <div class="legend-body open" id="legendBody">
+                <div class="legend-tag"><div class="legend-dot admin"></div>Admin</div>
+                <div class="legend-tag"><div class="legend-dot academic"></div>Academic</div>
+                <div class="legend-tag"><div class="legend-dot facility"></div>Facility</div>
+                <div class="legend-tag"><div class="legend-dot path"></div>Footwalk</div>
+                <div class="legend-tag"><div class="legend-dot route"></div>Route</div>
+                <div class="legend-tag"><div class="legend-dot walk"></div>Walk Path</div>
+                <div class="legend-tag"><div class="legend-dot conn"></div>Connector</div>
+            </div>
+        </div>
+    </div>
 
     <div class="gps-btn" id="gpsBtn" onclick="toggleLiveTracking()"><i class="fas fa-location-arrow"></i></div>
 
+    <!-- OPTIMIZED: Redesigned info panel for better mobile UX -->
     <div class="info-panel" id="infoPanel">
-        <div class="panel-handle"></div>
-        <div class="panel-header"><h3 class="panel-title" id="officeName"></h3><button class="panel-close" onclick="closePanel()"><i class="fas fa-times"></i></button></div>
-        <div id="officeDetails"></div>
-        <button class="nav-btn" onclick="navigateToOffice()"><i class="fas fa-directions mr-2"></i> Navigate Here</button>
+        <div class="panel-handle"><div class="panel-handle-bar"></div></div>
+        <div class="panel-inner">
+            <div class="panel-header">
+                <div class="panel-title-group">
+                    <h3 class="panel-title" id="officeName"></h3>
+                    <p class="panel-subtitle" id="officeSubtitle"></p>
+                </div>
+                <button class="panel-close" onclick="closePanel()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="officeCategory"></div>
+            <div class="info-grid" id="officeDetails"></div>
+            <button class="nav-btn" onclick="navigateToOffice()">
+                <i class="fas fa-directions"></i> Navigate Here
+            </button>
+        </div>
     </div>
 
     <div class="loading-overlay hidden" id="loadingOverlay"><div class="loading-card"><div class="spinner"></div><p style="color:#475569;font-weight:600;">Loading map...</p></div></div>
@@ -174,12 +243,43 @@ let isTracking=false,watchId=null,currentRoutePoints=[];
 let lastUserPosition=null,walkToPathLine=null,walkFromPathLine=null;
 let directionSteps=[],isNavigating=false;
 let realtimeWalkingWatchId=null;
+let lastRecalcTime=0;
+const RECALC_DIST=10;
+const RECALC_INTERVAL=30000;
+let legendOpen=true;
+
+function toggleLegend(){
+    legendOpen=!legendOpen;
+    const body=document.getElementById('legendBody');
+    const toggle=document.getElementById('legendToggle');
+    if(legendOpen){
+        body.classList.add('open');
+        toggle.classList.add('open');
+    }else{
+        body.classList.remove('open');
+        toggle.classList.remove('open');
+    }
+}
 
 function initMap(){
     showLoading(true);
-    map=L.map('map',{zoomControl:false,attributionControl:false,scrollWheelZoom:true,doubleClickZoom:true,touchZoom:true,dragging:true}).setView([9.853,122.890],18);
+    map=L.map('map',{zoomControl:false,attributionControl:false,scrollWheelZoom:true,doubleClickZoom:true,touchZoom:true,dragging:true,zoomAnimation:true}).setView([9.853,122.890],18);
     L.control.zoom({position:'bottomright'}).addTo(map);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,detectRetina:true}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,detectRetina:true,updateWhenIdle:false}).addTo(map);
+    
+    map.on('zoomend',()=>{
+        const zoom=map.getZoom();
+        const mc=document.getElementById('map');
+        zoom<16?mc.classList.add('map-low-zoom'):mc.classList.remove('map-low-zoom');
+        if(currentRoute)currentRoute.setStyle({weight:zoom<16?3:5,opacity:zoom<16?0.7:0.9});
+        if(walkToPathLine)walkToPathLine.setStyle({weight:zoom<16?2.5:3.5,opacity:zoom<16?0.6:0.8});
+        if(walkFromPathLine)walkFromPathLine.setStyle({weight:zoom<16?2.5:3.5,opacity:zoom<16?0.6:0.8});
+        
+        // Auto-collapse legend when zoomed out on mobile
+        if(window.innerWidth<768&&zoom<16&&legendOpen)toggleLegend();
+        if(window.innerWidth<768&&zoom>=17&&!legendOpen)toggleLegend();
+    });
+    
     loadOffices();loadFootwalks();setupSearch();
     window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(()=>map.invalidateSize(),150);});
     window.addEventListener('orientationchange',()=>setTimeout(()=>map.invalidateSize(),300));
@@ -198,7 +298,7 @@ function clearSearch(){const i=document.getElementById('searchInput');i.value=''
 
 async function loadOffices(){try{const r=await fetch('{{ route("offices.index") }}');const d=await r.json();if(d.success&&d.data&&d.data.length){officesData=d.data;d.data.forEach(o=>addMarker(o));}else loadDemoOffices();}catch(e){loadDemoOffices();}}
 function loadDemoOffices(){officesData=[{office_id:1,name:'Administration',building:'Admin Bldg',room_number:'101',lat:9.8531,lng:122.8901,category:'Administrative'},{office_id:2,name:'Engineering',building:'Engg Block',room_number:'201',lat:9.8532,lng:122.8902,category:'Academic'},{office_id:3,name:'Library',building:'Learning Center',room_number:'GF',lat:9.8533,lng:122.8903,category:'Academic'},{office_id:4,name:'Student Center',building:'Student Hub',room_number:'Main',lat:9.8534,lng:122.8904,category:'Facilities'},{office_id:5,name:'Health Services',building:'Medical Bldg',room_number:'102',lat:9.8535,lng:122.8905,category:'Services'}];officesData.forEach(o=>addMarker(o));}
-function addMarker(o){if(!o.lat||!o.lng)return;const c=o.category==='Administrative'?'#ef4444':o.category==='Academic'?'#3b82f6':'#10b981';const icon=L.divIcon({html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>`,iconSize:[14,14],className:''});const m=L.marker([o.lat,o.lng],{icon}).addTo(map);m.on('click',()=>selectOffice(o.office_id));m.bindTooltip(o.name,{direction:'top',offset:[0,-8]});markers[o.office_id]={marker:m,data:o};}
+function addMarker(o){if(!o.lat||!o.lng)return;const c=o.category==='Administrative'?'#ef4444':o.category==='Academic'?'#3b82f6':'#10b981';const icon=L.divIcon({html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>`,iconSize:[14,14],className:''});const m=L.marker([o.lat,o.lng],{icon}).addTo(map);m.on('click',()=>selectOffice(o.office_id));m.bindTooltip(o.name,{direction:'top',offset:[0,-8],className:'mobile-tooltip'});markers[o.office_id]={marker:m,data:o};}
 
 async function loadFootwalks(){try{const r=await fetch('{{ route("footwalks.index") }}');const d=await r.json();if(d.success&&d.data?.length>0){footwalkPaths=d.data.map(f=>({id:f.id,name:f.name,color:f.color||'#3b82f6',coordinates:JSON.parse(f.coordinates)}));processFootwalks();}else createDemoFootwalks();}catch(e){createDemoFootwalks();}finally{showLoading(false);}}
 function processFootwalks(){footwalkPaths.forEach(p=>drawFootwalk(p));buildPathGraph();showConnectionPoints();graphBuilt=true;showToast(`${footwalkPaths.length} paths loaded`,'success');}
@@ -210,6 +310,24 @@ function findClosest(c1,c2){let md=Infinity,bp1={lat:c1[0][0],lng:c1[0][1]},bp2=
 function showConnectionPoints(){connectionPoints.forEach(p=>{L.circleMarker([p.lat,p.lng],{radius:4,color:'#f59e0b',fillColor:'#f59e0b',fillOpacity:0.7,weight:2}).addTo(map);});}
 function calcDist(lat1,lng1,lat2,lng2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function findNearestNode(lat,lng){let n=null,md=Infinity;Object.keys(pathGraph).forEach(id=>{const d=calcDist(lat,lng,pathGraph[id].lat,pathGraph[id].lng);if(d<md){md=d;n={id,node:pathGraph[id],dist:d};}});return n;}
+
+function pointToSegmentDist(px,py,x1,y1,x2,y2){
+    const dx=x2-x1,dy=y2-y1;
+    const len2=dx*dx+dy*dy;
+    if(len2===0)return calcDist(px,py,x1,y1);
+    let t=((px-x1)*dx+(py-y1)*dy)/len2;
+    t=Math.max(0,Math.min(1,t));
+    return calcDist(px,py,x1+t*dx,y1+t*dy);
+}
+
+function calcDeviation(lat,lng,routePts){
+    let minD=Infinity;
+    for(let i=0;i<routePts.length-1;i++){
+        const d=pointToSegmentDist(lat,lng,routePts[i][0],routePts[i][1],routePts[i+1][0],routePts[i+1][1]);
+        minD=Math.min(minD,d);
+    }
+    return minD;
+}
 
 function findShortestPath(sl,sn,el,en){
     if(!Object.keys(pathGraph).length)return[[sl,sn],[el,en]];
@@ -223,15 +341,43 @@ function findShortestPath(sl,sn,el,en){
     const uq=[];pts.forEach(p=>{if(!uq.length||Math.abs(uq[uq.length-1][0]-p[0])>1e-6||Math.abs(uq[uq.length-1][1]-p[1])>1e-6)uq.push(p);});return uq;
 }
 
+function getCategoryIcon(cat){
+    const c=cat?.toLowerCase()||'';
+    if(c.includes('admin'))return{icon:'fa-building-columns',color:'#ef4444',bg:'#fef2f2',badge:'badge-admin'};
+    if(c.includes('academ'))return{icon:'fa-graduation-cap',color:'#2563eb',bg:'#eff6ff',badge:'badge-academic'};
+    return{icon:'fa-building',color:'#059669',bg:'#ecfdf5',badge:'badge-facility'};
+}
+
 function selectOffice(oid){
     const o=officesData.find(o=>o.office_id==oid);if(!o)return;
     if(isNavigating&&selectedOffice&&selectedOffice.office_id!==o.office_id)stopNavigation();
     selectedOffice=o;
+    
+    const cat=getCategoryIcon(o.category);
+    
     document.getElementById('officeName').textContent=o.name;
-    document.getElementById('officeDetails').innerHTML=`<div class="info-row"><i class="fas fa-building" style="color:#3b82f6;"></i><span>${o.building||'Main'}</span></div><div class="info-row"><i class="fas fa-door-open" style="color:#3b82f6;"></i><span>Room ${o.room_number||'N/A'}</span></div><span class="info-badge">${o.category}</span>`;
-    document.getElementById('infoPanel').classList.add('show');document.getElementById('searchSuggestions').classList.remove('show');
-    document.getElementById('searchInput').value=o.name;document.getElementById('searchClear').classList.add('visible');
-    map.flyTo([o.lat,o.lng],18,{duration:0.7});if(markers[o.office_id])markers[o.office_id].marker.openTooltip();
+    document.getElementById('officeSubtitle').textContent=`${o.building||'Main Building'} · Room ${o.room_number||'N/A'}`;
+    document.getElementById('officeCategory').innerHTML=`<span class="category-badge ${cat.badge}"><i class="fas ${cat.icon}"></i>${o.category||'Facility'}</span>`;
+    
+    document.getElementById('officeDetails').innerHTML=`
+        <div class="info-card">
+            <span class="info-card-icon"><i class="fas fa-building" style="color:#3b82f6;"></i></span>
+            <span class="info-card-label">Building</span>
+            <span class="info-card-value">${o.building||'Main'}</span>
+        </div>
+        <div class="info-card">
+            <span class="info-card-icon"><i class="fas fa-door-open" style="color:#10b981;"></i></span>
+            <span class="info-card-label">Room Number</span>
+            <span class="info-card-value">${o.room_number||'N/A'}</span>
+        </div>
+    `;
+    
+    document.getElementById('infoPanel').classList.add('show');
+    document.getElementById('searchSuggestions').classList.remove('show');
+    document.getElementById('searchInput').value=o.name;
+    document.getElementById('searchClear').classList.add('visible');
+    map.flyTo([o.lat,o.lng],18,{duration:0.7});
+    if(markers[o.office_id])markers[o.office_id].marker.openTooltip();
 }
 function closePanel(){document.getElementById('infoPanel').classList.remove('show');}
 function toggleDirectionPopup(){const p=document.getElementById('directionPopup'),b=document.querySelector('.nav-eta-toggle i');p.classList.toggle('show');if(b)b.className=p.classList.contains('show')?'fas fa-chevron-down':'fas fa-chevron-up';}
@@ -251,21 +397,45 @@ function navigateToOffice(){
 
 function calculateAndDrawRoute(sl,sn,el,en,recalc=false){
     const pts=findShortestPath(sl,sn,el,en);currentRoutePoints=pts;clearRoutes();
-    walkToPathLine=L.polyline([pts[0],pts[1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8}).addTo(map);
-    currentRoute=L.polyline(pts.slice(1,pts.length-1),{color:'#10b981',weight:5,dashArray:'10,7',opacity:0.9,lineCap:'round',lineJoin:'round'}).addTo(map);
-    walkFromPathLine=L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8}).addTo(map);
-    const dIcon=L.divIcon({html:'<div class="dest-marker"></div>',iconSize:[20,20],iconAnchor:[10,20]});destMarker=L.marker([el,en],{icon:dIcon}).addTo(map);
     
-    // Replace user marker with animated walking marker
+    if(pts.length>1){
+        walkToPathLine=L.polyline([pts[0],pts[1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8,smoothFactor:1}).addTo(map);
+    }
+    
+    if(pts.length>2){
+        currentRoute=L.polyline(pts.slice(1,pts.length-1),{color:'#10b981',weight:5,dashArray:'10,7',opacity:0.9,lineCap:'round',lineJoin:'round',smoothFactor:0.5,interactive:false}).addTo(map);
+    }
+    
+    if(pts.length>1){
+        walkFromPathLine=L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8,smoothFactor:1}).addTo(map);
+    }
+    
+    const dIcon=L.divIcon({html:'<div class="dest-marker"></div>',iconSize:[20,20],iconAnchor:[10,20]});
+    destMarker=L.marker([el,en],{icon:dIcon}).addTo(map);
+    
     if(userMarker){map.removeLayer(userMarker);userMarker=null;}
     updateWalkingMarker(sl,sn);
     
-    const wtd=calcDist(sl,sn,pts[1][0],pts[1][1]),wfd=calcDist(pts[pts.length-2][0],pts[pts.length-2][1],el,en);let fwd=0;for(let i=1;i<pts.length-2;i++)fwd+=calcDist(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);const td=wtd+fwd+wfd;
+    let td=0;
+    for(let i=0;i<pts.length-1;i++)td+=calcDist(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+    
     const eta=document.getElementById('navEtaBar');eta.classList.remove('hide');eta.classList.add('show');
-    document.getElementById('navEtaDest').textContent=selectedOffice.name;document.getElementById('navEtaTime').textContent=`${Math.round(td)}m · ${(td/80).toFixed(1)} min`;
-    directionSteps=[{icon:'fa-location-dot',color:'#10b981',text:'You are here'},{icon:'fa-arrow-right',color:'#ef4444',text:`Walk <b>${Math.round(wtd)}m</b> to nearest footwalk <span style="color:#ef4444;">(red)</span>`},{icon:'fa-road',color:'#10b981',text:`Follow footwalks <b>${Math.round(fwd)}m</b> <span style="color:#10b981;">(green)</span>`},{icon:'fa-arrow-right',color:'#ef4444',text:`Walk <b>${Math.round(wfd)}m</b> to office <span style="color:#ef4444;">(red)</span>`},{icon:'fa-flag-checkered',color:'#3b82f6',text:`Arrive at <b>${selectedOffice.name}</b>`}];
-    updateDirectionContent();document.getElementById('directionPopup').classList.remove('show');const ti=document.querySelector('.nav-eta-toggle i');if(ti)ti.className='fas fa-chevron-up';closePanel();
-    if(!recalc){map.fitBounds(L.latLngBounds([pts[0],pts[1],...pts.slice(1,pts.length-1),pts[pts.length-2],pts[pts.length-1]]),{padding:[80,80],maxZoom:18});showToast(`Route: ${Math.round(td)}m`,'success');}
+    document.getElementById('navEtaDest').textContent=selectedOffice.name;
+    document.getElementById('navEtaTime').textContent=`${Math.round(td)}m · ${(td/80).toFixed(1)} min`;
+    
+    directionSteps=[
+        {icon:'fa-location-dot',color:'#10b981',text:'You are here'},
+        {icon:'fa-arrow-right',color:'#ef4444',text:'Walk to nearest footwalk (red path)'},
+        {icon:'fa-road',color:'#10b981',text:'Follow footwalks (green path)'},
+        {icon:'fa-arrow-right',color:'#ef4444',text:'Walk to destination (red path)'},
+        {icon:'fa-flag-checkered',color:'#3b82f6',text:`Arrive at <b>${selectedOffice.name}</b>`}
+    ];
+    updateDirectionContent();
+    
+    if(!recalc){
+        map.fitBounds(L.latLngBounds(pts),{padding:[80,80],maxZoom:18});
+        showToast(`Route: ${Math.round(td)}m`,'success');
+    }
 }
 
 function updateWalkingMarker(lat,lng){
@@ -284,52 +454,84 @@ function updateWalkingMarker(lat,lng){
 
 function startRealtimeWalking(){
     stopRealtimeWalking();
+    lastRecalcTime=Date.now();
     document.getElementById('liveBadge').classList.add('show');
     document.getElementById('gpsBtn').classList.add('active');
     showToast('Real-time navigation active - start walking!','success');
     
-    realtimeWalkingWatchId = navigator.geolocation.watchPosition(
-        pos => {
-            const {latitude, longitude, accuracy} = pos.coords;
-            lastUserPosition = {lat: latitude, lng: longitude};
+    realtimeWalkingWatchId=navigator.geolocation.watchPosition(
+        pos=>{
+            const {latitude,longitude}=pos.coords;
+            lastUserPosition={lat:latitude,lng:longitude};
+            updateWalkingMarker(latitude,longitude);
             
-            // Update walking marker position with real GPS coordinates
-            updateWalkingMarker(latitude, longitude);
-            
-            // Update ETA based on real position
-            if (selectedOffice) {
-                const distance = calcDist(latitude, longitude, selectedOffice.lat, selectedOffice.lng);
-                document.getElementById('navEtaTime').textContent = `${Math.round(distance)}m · ${(distance/80).toFixed(1)} min`;
+            if(selectedOffice&&currentRoutePoints.length>0){
+                const distance=calcDist(latitude,longitude,selectedOffice.lat,selectedOffice.lng);
+                document.getElementById('navEtaTime').textContent=`${Math.round(distance)}m · ${(distance/80).toFixed(1)} min`;
                 
-                // Check if arrived
-                if (distance < 15) {
+                if(distance<15){
                     showToast(`🎉 You've arrived at ${selectedOffice.name}!`,'success');
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+                    if(navigator.vibrate)navigator.vibrate([200,100,200,100,200]);
                     stopNavigation();
+                    return;
+                }
+                
+                updateRouteProgress(latitude,longitude);
+                
+                if(currentRoutePoints.length>=2){
+                    const dev=calcDeviation(latitude,longitude,currentRoutePoints);
+                    if(dev>RECALC_DIST||(Date.now()-lastRecalcTime>RECALC_INTERVAL)){
+                        lastRecalcTime=Date.now();
+                        calculateAndDrawRoute(latitude,longitude,selectedOffice.lat,selectedOffice.lng,true);
+                    }
                 }
             }
             
-            // Keep map centered on user while walking
-            map.setView([latitude, longitude], 18, {animate: true, duration: 0.5});
-        },
-        err => {
-            if (err.code === 1) {
-                showToast('GPS permission denied','error');
-                stopNavigation();
+            if(isNavigating){
+                map.panTo([latitude,longitude],{animate:true,duration:0.5});
             }
         },
-        {
-            enableHighAccuracy: true,
-            maximumAge: 1000,
-            timeout: 10000
-        }
+        err=>{
+            if(err.code===1){showToast('GPS permission denied','error');stopNavigation();}
+        },
+        {enableHighAccuracy:true,maximumAge:1000,timeout:10000}
     );
+}
+
+function updateRouteProgress(lat,lng){
+    if(!currentRoute||!currentRoutePoints||currentRoutePoints.length<3)return;
+    
+    let closestIdx=0;
+    let minDist=Infinity;
+    
+    for(let i=0;i<currentRoutePoints.length;i++){
+        const d=calcDist(lat,lng,currentRoutePoints[i][0],currentRoutePoints[i][1]);
+        if(d<minDist){minDist=d;closestIdx=i;}
+    }
+    
+    if(walkToPathLine){
+        map.removeLayer(walkToPathLine);
+        walkToPathLine=null;
+    }
+    
+    const nextIdx=Math.min(closestIdx+1,currentRoutePoints.length-1);
+    if(nextIdx>0){
+        walkToPathLine=L.polyline([
+            [lat,lng],
+            [currentRoutePoints[nextIdx][0],currentRoutePoints[nextIdx][1]]
+        ],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8,smoothFactor:1}).addTo(map);
+    }
+    
+    if(currentRoute&&closestIdx<currentRoutePoints.length-1){
+        const remaining=currentRoutePoints.slice(closestIdx);
+        currentRoute.setLatLngs(remaining);
+    }
 }
 
 function stopRealtimeWalking(){
     if(realtimeWalkingWatchId){
         navigator.geolocation.clearWatch(realtimeWalkingWatchId);
-        realtimeWalkingWatchId = null;
+        realtimeWalkingWatchId=null;
     }
 }
 
@@ -339,6 +541,7 @@ function clearRoutes(){
     if(walkToPathLine){map.removeLayer(walkToPathLine);walkToPathLine=null;}
     if(walkFromPathLine){map.removeLayer(walkFromPathLine);walkFromPathLine=null;}
     if(destMarker){map.removeLayer(destMarker);destMarker=null;}
+    currentRoutePoints=[];
 }
 function updateDirectionContent(){document.getElementById('directionContent').innerHTML=directionSteps.map(s=>`<div class="direction-step"><div class="direction-step-icon"><i class="fas ${s.icon}" style="color:${s.color};"></i></div><div>${s.text}</div></div>`).join('');}
 
