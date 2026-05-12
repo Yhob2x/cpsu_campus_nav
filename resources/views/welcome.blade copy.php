@@ -1,1465 +1,586 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-
-   
-
+    
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-   
-
+    
     <!-- PWA / Mobile App Support -->
-
     <meta name="mobile-web-app-capable" content="yes">
-
     <meta name="apple-mobile-web-app-capable" content="yes">
-
-   
-
+    
     <!-- Status Bar -->
-
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-   
-
+    
     <!-- Theme -->
-
     <meta name="theme-color" content="#0f172a">
 
- 
-
     <title>CPSU Map Navigator</title>
-
     <link href="https://cdn.tailwindcss.com" rel="stylesheet">
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-
         :root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
-
         html,body{width:100%;height:100%;overflow:hidden;position:fixed;top:0;left:0;font-family:'Inter',sans-serif;background:#000}
-
         #map{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
 
- 
-
         .header{position:fixed;top:0;left:0;right:0;z-index:50;padding:8px 10px;padding-top:calc(8px + var(--sat));display:flex;align-items:center;gap:8px;pointer-events:none}
-
         .header>*{pointer-events:auto}
-
         .header-brand{display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.88);backdrop-filter:blur(16px);padding:6px 12px;border-radius:22px;border:1px solid rgba(255,255,255,0.1)}
-
         .header-logo{font-size:1.1rem}.header-title{color:white;font-weight:700;font-size:0.8rem;white-space:nowrap}.header-spacer{flex:1}
-
         .live-badge{display:none;align-items:center;gap:5px;background:rgba(16,185,129,0.25);color:#6ee7b7;padding:5px 12px;border-radius:18px;font-size:0.65rem;font-weight:700;border:1px solid rgba(16,185,129,0.3);animation:livePulse 2s infinite}
-
         .live-badge.show{display:flex}.live-dot{width:6px;height:6px;background:#10b981;border-radius:50%;animation:dotPulse 1.5s infinite}
-
         @keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.4)}50%{box-shadow:0 0 0 8px rgba(16,185,129,0)}}@keyframes dotPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:0.4}}
-
         .header-btns{display:flex;gap:5px}
-
         .icon-btn{width:32px;height:32px;border-radius:50%;background:rgba(15,23,42,0.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;transition:all 0.15s;text-decoration:none}
-
         .icon-btn:active{transform:scale(0.9);background:rgba(255,255,255,0.2)}
 
- 
-
         .search-bar{position:fixed;top:calc(52px + var(--sat));left:50%;transform:translateX(-50%);z-index:45;pointer-events:none;width:calc(100% - 24px);max-width:420px}
-
         .search-bar>*{pointer-events:auto}
-
         .search-wrapper{position:relative;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.5)}
-
         #searchInput{width:100%;padding:10px 40px;border:none;border-radius:24px;font-size:0.85rem;background:transparent;font-weight:500;color:#0f172a;outline:none}
-
         #searchInput::placeholder{color:#94a3b8;font-size:0.8rem}
-
         .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:0.85rem}
-
         .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;padding:6px;cursor:pointer;display:none;font-size:0.8rem}
-
         .search-clear.visible{display:block}
-
         .search-suggestions{position:absolute;top:46px;left:0;right:0;background:white;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,0.15);max-height:200px;overflow-y:auto;display:none}
-
         .search-suggestions.show{display:block}
-
         .suggestion-item{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;transition:background 0.1s}
-
         .suggestion-item:last-child{border-bottom:none}.suggestion-item:active{background:#f8fafc}
-
         .suggestion-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}.suggestion-info{flex:1;min-width:0}
-
         .suggestion-name{font-weight:600;color:#0f172a;font-size:0.8rem}.suggestion-detail{font-size:0.7rem;color:#64748b}
 
- 
-
         .bottom-controls{position:fixed;bottom:16px;bottom:calc(16px + var(--sab));left:50%;transform:translateX(-50%);z-index:45;display:flex;gap:6px;pointer-events:none}
-
         .bottom-controls>*{pointer-events:auto}
-
         .pill-btn{padding:8px 14px;border-radius:20px;border:none;font-weight:600;font-size:0.75rem;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.15s;backdrop-filter:blur(16px);box-shadow:0 3px 12px rgba(0,0,0,0.12)}
-
         .pill-btn:active{transform:scale(0.95)}.pill-primary{background:#10b981;color:white}.pill-secondary{background:rgba(255,255,255,0.92);color:#3b82f6;border:1px solid rgba(255,255,255,0.5)}.pill-neutral{background:rgba(255,255,255,0.92);color:#475569;border:1px solid rgba(255,255,255,0.5)}
 
- 
-
         /* OPTIMIZED: Collapsible floating legend for mobile */
-
         .legend-container{position:fixed;bottom:68px;bottom:calc(68px + var(--sab));left:8px;right:8px;z-index:44;pointer-events:none}
-
         .legend-floating{pointer-events:auto;background:rgba(15,23,42,0.9);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.15);max-width:100%;overflow:hidden;transition:all 0.3s ease}
-
         .legend-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;-webkit-user-select:none}
-
         .legend-title{color:white;font-size:0.7rem;font-weight:700;display:flex;align-items:center;gap:6px}
-
         .legend-title i{font-size:0.65rem;opacity:0.7}
-
         .legend-toggle{color:white;font-size:0.7rem;transition:transform 0.3s ease;opacity:0.7}
-
         .legend-toggle.open{transform:rotate(180deg)}
-
         .legend-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:4px;padding:0 12px;max-height:0;overflow:hidden;transition:all 0.3s ease;opacity:0}
-
         .legend-body.open{max-height:120px;padding:0 12px 8px;opacity:1}
-
         .legend-tag{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.1);font-size:0.6rem;color:rgba(255,255,255,0.85);white-space:nowrap;font-weight:500}
-
         .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.3)}
-
         .legend-dot.admin{background:#ef4444}
-
         .legend-dot.academic{background:#3b82f6}
-
         .legend-dot.facility{background:#10b981}
-
         .legend-dot.path{background:transparent;border:2px dashed #3b82f6;width:10px;height:10px}
-
         .legend-dot.route{background:transparent;border:2px dashed #10b981;width:10px;height:10px}
-
         .legend-dot.walk{background:transparent;border:2px dashed #ef4444;width:10px;height:10px}
-
         .legend-dot.conn{background:#f59e0b}
-
         .legend-mini{display:flex;gap:4px;flex-wrap:wrap}
 
- 
-
         .gps-btn{position:fixed;bottom:120px;bottom:calc(120px + var(--sab));right:14px;width:44px;height:44px;border-radius:50%;background:white;box-shadow:0 4px 16px rgba(0,0,0,0.18);cursor:pointer;z-index:44;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#64748b;border:2px solid #e2e8f0;transition:all 0.3s}
-
         .gps-btn:active{transform:scale(0.9)}.gps-btn.active{background:#10b981;color:white;border-color:#10b981;animation:gpsPulse 2s infinite}
-
-    @keyframes gpsPulse{0%,100%{box-shadow:0 4px 16px rgba(16,185,129,0.4)}50%{box-shadow:0 4px 24px rgba(16,185,129,0.7)}}
-
-    .gps-accuracy{position:fixed;right:14px;bottom:172px;bottom:calc(172px + var(--sab));z-index:44;background:rgba(15,23,42,0.88);color:white;border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:6px 10px;font-size:0.68rem;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.16);backdrop-filter:blur(14px);display:none;align-items:center;gap:6px}
-
-    .gps-accuracy.show{display:flex}.gps-accuracy.good i{color:#10b981}.gps-accuracy.warn i{color:#f59e0b}.gps-accuracy.bad i{color:#ef4444}
-
-    .tile-switcher{position:fixed;right:14px;top:calc(104px + var(--sat));z-index:44;display:flex;flex-direction:column;gap:6px}
-
-    .tile-btn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(226,232,240,0.95);background:white;color:#475569;box-shadow:0 4px 14px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer}
-
-    .tile-menu{display:none;background:rgba(255,255,255,0.96);backdrop-filter:blur(14px);border:1px solid rgba(226,232,240,0.95);border-radius:14px;box-shadow:0 8px 24px rgba(15,23,42,0.18);overflow:hidden}
-
-    .tile-menu.show{display:block}
-
-    .tile-option{width:118px;padding:9px 11px;border:none;background:transparent;color:#334155;text-align:left;font-size:0.72rem;font-weight:800;display:flex;align-items:center;gap:7px;cursor:pointer}
-
-    .tile-option.active{background:#0f172a;color:white}
-
- 
+        @keyframes gpsPulse{0%,100%{box-shadow:0 4px 16px rgba(16,185,129,0.4)}50%{box-shadow:0 4px 24px rgba(16,185,129,0.7)}}
 
         .nav-eta-bar{position:fixed;top:calc(100px + var(--sat));left:50%;transform:translateX(-50%);z-index:46;width:calc(100% - 24px);max-width:420px;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-radius:18px;padding:10px 14px;box-shadow:0 4px 20px rgba(0,0,0,0.12);display:none;align-items:center;gap:10px;border-left:3px solid #10b981;transition:all 0.3s ease}
-
         .nav-eta-bar.show{display:flex}.nav-eta-bar.hide{display:none!important;opacity:0;transform:translateX(-50%) translateY(-10px)}
-
         .nav-eta-icon{width:32px;height:32px;border-radius:50%;background:#f0fdf4;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:0.9rem;flex-shrink:0}
-
         .nav-eta-info{flex:1;min-width:0}.nav-eta-dest{font-weight:700;font-size:0.8rem;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-eta-time{font-size:0.7rem;color:#64748b}
-
         .nav-eta-toggle{width:30px;height:30px;border-radius:50%;background:#f0fdf4;border:none;color:#10b981;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;transition:all 0.2s ease}
-
         .nav-eta-toggle:active{background:#dcfce7;transform:scale(0.9)}
-
         .nav-eta-close{width:30px;height:30px;border-radius:50%;background:#fee2e2;border:none;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;transition:all 0.2s ease}
-
         .nav-eta-close:active{background:#fecaca;transform:scale(0.9)}
 
- 
-
         .direction-popup{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:45vh;display:flex;flex-direction:column}
-
         .direction-popup.show{transform:translateY(0)}.direction-handle{padding:8px 0;text-align:center;flex-shrink:0}.direction-handle-bar{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto}
-
         .direction-content{padding:0 16px 12px;overflow-y:auto;flex:1;padding-bottom:calc(12px + var(--sab))}
-
         .direction-step{padding:8px 0;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;color:#475569}.direction-step:last-child{border-bottom:none}.direction-step-icon{width:20px;text-align:center;flex-shrink:0;font-size:0.85rem}
 
- 
-
         /* OPTIMIZED: Better mobile info panel */
-
         .info-panel{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,0.2);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:50vh;overflow-y:auto;padding:0}
-
         .info-panel.show{transform:translateY(0)}
-
         .panel-handle{padding:10px 0;text-align:center;position:sticky;top:0;background:white;z-index:1;border-radius:20px 20px 0 0}
-
         .panel-handle-bar{width:36px;height:4px;background:#cbd5e1;border-radius:2px;margin:0 auto}
-
         .panel-inner{padding:0 16px 16px;padding-bottom:calc(16px + var(--sab))}
-
         .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-
         .panel-title-group{flex:1;min-width:0}
-
         .panel-title{font-weight:700;font-size:0.95rem;color:#0f172a;line-height:1.2}
-
         .panel-subtitle{font-size:0.7rem;color:#64748b;margin-top:2px}
-
         .panel-close{background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:0.9rem;color:#64748b;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
-
         .panel-close:active{background:#fee2e2;color:#ef4444}
-
         .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-
         .info-card{background:#f8fafc;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}
-
         .info-card-icon{font-size:1.1rem}
-
         .info-card-label{font-size:0.6rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-
         .info-card-value{font-size:0.8rem;color:#0f172a;font-weight:600}
-
         .category-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:0.3px}
-
         .badge-admin{background:#fef2f2;color:#dc2626}
-
         .badge-academic{background:#eff6ff;color:#2563eb}
-
         .badge-facility{background:#ecfdf5;color:#059669}
-
         .nav-btn{width:100%;padding:14px;background:#3b82f6;color:white;border:none;border-radius:14px;font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;letter-spacing:0.3px}
-
         .nav-btn:active{background:#1d4ed8;transform:scale(0.98)}
 
-        .travel-mode-control{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
-
-        .mode-btn{height:42px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;border-radius:12px;font-weight:800;font-size:0.78rem;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:all 0.15s}
-
-        .mode-btn.active{background:#0f172a;color:white;border-color:#0f172a;box-shadow:0 6px 16px rgba(15,23,42,0.2)}
-
-        .mode-btn:active{transform:scale(0.97)}
-
- 
-
-    .user-marker{position:relative;width:18px;height:18px;background:#10b981;border-radius:50%;border:3px solid white;box-shadow:0 0 0 3px rgba(16,185,129,0.3);animation:userPulse 2s infinite}
-
-    .user-marker::before{content:'';position:absolute;left:50%;top:-13px;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:13px solid #10b981;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.25))}
-
+        .user-marker{width:16px;height:16px;background:#10b981;border-radius:50%;border:3px solid white;box-shadow:0 0 0 3px rgba(16,185,129,0.3);animation:userPulse 2s infinite}
         @keyframes userPulse{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,0.3)}50%{box-shadow:0 0 0 10px rgba(16,185,129,0.06)}}
-
         .dest-marker{width:20px;height:20px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
-
-       
-
-    .walking-live-marker{position:relative;width:24px;height:24px;background:#f59e0b;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3);animation:walkPulse 1.5s ease-in-out infinite}
-
-    .walking-live-marker::before{content:'';position:absolute;left:50%;top:-16px;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:16px solid #f59e0b;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.25))}
-
-    @keyframes walkPulse{0%,100%{box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3)}50%{box-shadow:0 0 0 12px rgba(245,158,11,0.1), 0 4px 12px rgba(0,0,0,0.3)}}
-
- 
+        
+        .walking-live-marker{width:24px;height:24px;background:#f59e0b;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3);animation:walkBounce 0.6s ease-in-out infinite, walkPulse 1.5s ease-in-out infinite}
+        @keyframes walkBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes walkPulse{0%,100%{box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3)}50%{box-shadow:0 0 0 12px rgba(245,158,11,0.1), 0 4px 12px rgba(0,0,0,0.3)}}
 
         .toast{position:fixed;bottom:140px;left:16px;right:16px;padding:12px 14px;background:white;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.18);font-size:0.8rem;font-weight:500;z-index:250;display:flex;align-items:center;gap:8px}
-
         .toast-success{border-left:3px solid #10b981;color:#166534}.toast-error{border-left:3px solid #ef4444;color:#991b1b}.toast-info{border-left:3px solid #06b6d4;color:#0c4a6e}
-
         .hidden{display:none!important}
-
         .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300}
-
         .loading-card{background:white;padding:28px;border-radius:18px;text-align:center}
-
         .spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}
-
- 
 
         .map-low-zoom .leaflet-tooltip{font-size:11px}
 
- 
-
         @media(min-width:768px){
-
             .search-bar{left:20px;transform:none;max-width:360px}
-
             .nav-eta-bar{left:20px;transform:none;max-width:360px}
-
             .bottom-controls{left:20px;transform:none}
-
             .legend-container{left:20px;right:auto;max-width:320px}
-
             .info-panel{left:20px;right:auto;width:380px;border-radius:20px;bottom:20px;transform:translateY(calc(100% + 20px));max-height:55vh}
-
             .info-panel.show{transform:translateY(0)}
-
             .direction-popup{left:20px;right:auto;width:380px;border-radius:20px;bottom:20px;transform:translateY(calc(100% + 20px))}
-
             .direction-popup.show{transform:translateY(0)}
-
         }
-
-       
-
+        
         @media(max-height:400px){
-
             .search-bar{top:calc(40px + var(--sat))}
-
             .legend-container{display:none}
-
             .info-panel{max-height:70vh}
-
         }
-
     </style>
-
 </head>
-
 <body>
-
     <div id="map"></div>
 
- 
-
     <div class="header">
-
         <div class="header-brand"><span class="header-logo">🗺️</span><span class="header-title">CPSU Navigator</span></div>
-
         <div class="header-spacer"></div>
-
         <div class="live-badge" id="liveBadge"><div class="live-dot"></div>LIVE</div>
-
         <div class="header-btns">
-
             <a href="{{ url('/directory') }}" class="icon-btn"><i class="fas fa-list"></i></a>
-
             <a href="{{ url('/login') }}" class="icon-btn"><i class="fas fa-user-shield"></i></a>
-
         </div>
-
     </div>
-
- 
 
     <div class="search-bar">
-
         <div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" id="searchInput" placeholder="Search offices..." autocomplete="off"><button class="search-clear" id="searchClear" onclick="clearSearch()"><i class="fas fa-times-circle"></i></button></div>
-
         <div class="search-suggestions" id="searchSuggestions"></div>
-
     </div>
-
- 
 
     <div class="nav-eta-bar" id="navEtaBar">
-
         <div class="nav-eta-icon"><i class="fas fa-walking"></i></div>
-
         <div class="nav-eta-info"><div class="nav-eta-dest" id="navEtaDest">-</div><div class="nav-eta-time" id="navEtaTime">Calculating...</div></div>
-
         <button class="nav-eta-toggle" onclick="toggleDirectionPopup()" title="Directions"><i class="fas fa-chevron-up"></i></button>
-
         <button class="nav-eta-close" onclick="stopNavigation()"><i class="fas fa-times"></i></button>
-
     </div>
-
- 
 
     <div class="direction-popup" id="directionPopup">
-
         <div class="direction-handle" onclick="toggleDirectionPopup()"><div class="direction-handle-bar"></div></div>
-
         <div class="direction-content" id="directionContent"></div>
-
     </div>
-
-    <div class="tile-switcher">
-
-        <button class="tile-btn" onclick="toggleTileMenu()" title="Map tiles"><i class="fas fa-layer-group"></i></button>
-
-        <div class="tile-menu" id="tileMenu">
-
-            <button class="tile-option active" data-tile="student" onclick="setTileLayer('student')"><i class="fas fa-map"></i> Student</button>
-
-            <button class="tile-option" data-tile="standard" onclick="setTileLayer('standard')"><i class="fas fa-road"></i> Street</button>
-
-            <button class="tile-option" data-tile="satellite" onclick="setTileLayer('satellite')"><i class="fas fa-earth-asia"></i> Satellite</button>
-
-        </div>
-
-    </div>
-
- 
 
     <div class="bottom-controls">
-
         <button onclick="centerToUser()" class="pill-btn pill-primary"><i class="fas fa-location-dot"></i> My Location</button>
-
         <button onclick="findNearestOffice()" class="pill-btn pill-secondary"><i class="fas fa-building"></i> Nearest</button>
-
         <button onclick="resetMap()" class="pill-btn pill-neutral"><i class="fas fa-home"></i> Reset</button>
-
     </div>
-
- 
 
     <!-- OPTIMIZED: Collapsible floating legend -->
-
     <div class="legend-container">
-
         <div class="legend-floating" id="legendFloating">
-
             <div class="legend-header" onclick="toggleLegend()">
-
                 <span class="legend-title"><i class="fas fa-map-pin"></i> Map Legend</span>
-
-                <i class="fas fa-chevron-down legend-toggle" id="legendToggle"></i>
-
+                <i class="fas fa-chevron-down legend-toggle open" id="legendToggle"></i>
             </div>
-
-            <div class="legend-body" id="legendBody">
-
+            <div class="legend-body open" id="legendBody">
                 <div class="legend-tag"><div class="legend-dot admin"></div>Admin</div>
-
                 <div class="legend-tag"><div class="legend-dot academic"></div>Academic</div>
-
                 <div class="legend-tag"><div class="legend-dot facility"></div>Facility</div>
-
                 <div class="legend-tag"><div class="legend-dot path"></div>Footwalk</div>
-
                 <div class="legend-tag"><div class="legend-dot route"></div>Route</div>
-
                 <div class="legend-tag"><div class="legend-dot walk"></div>Walk Path</div>
-
                 <div class="legend-tag"><div class="legend-dot conn"></div>Connector</div>
-
             </div>
-
         </div>
-
     </div>
 
- 
-
-  <div class="gps-accuracy" id="gpsAccuracy"><i class="fas fa-satellite-dish"></i><span id="gpsAccuracyText">GPS</span></div>
-
-  <div class="gps-btn" id="gpsBtn" onclick="toggleLiveTracking()" title="Follow my location"><i class="fas fa-location-arrow"></i></div>
-
- 
+    <div class="gps-btn" id="gpsBtn" onclick="toggleLiveTracking()"><i class="fas fa-location-arrow"></i></div>
 
     <!-- OPTIMIZED: Redesigned info panel for better mobile UX -->
-
     <div class="info-panel" id="infoPanel">
-
         <div class="panel-handle"><div class="panel-handle-bar"></div></div>
-
         <div class="panel-inner">
-
             <div class="panel-header">
-
                 <div class="panel-title-group">
-
                     <h3 class="panel-title" id="officeName"></h3>
-
                     <p class="panel-subtitle" id="officeSubtitle"></p>
-
                 </div>
-
                 <button class="panel-close" onclick="closePanel()"><i class="fas fa-times"></i></button>
-
             </div>
-
-                    <div id="officeCategory"></div>
-
-                    <div class="info-grid" id="officeDetails"></div>
-
-                    <div class="travel-mode-control" role="group" aria-label="Travel mode">
-
-                        <button class="mode-btn active" id="walkModeBtn" onclick="setTravelMode('walk')"><i class="fas fa-person-walking"></i> Walk</button>
-
-                        <button class="mode-btn" id="motorModeBtn" onclick="setTravelMode('motorcycle')"><i class="fas fa-motorcycle"></i> Motorcycle</button>
-
-                    </div>
-
-                    <button class="nav-btn" onclick="navigateToOffice()">
-
+            <div id="officeCategory"></div>
+            <div class="info-grid" id="officeDetails"></div>
+            <button class="nav-btn" onclick="navigateToOffice()">
                 <i class="fas fa-directions"></i> Navigate Here
-
             </button>
-
         </div>
-
     </div>
-
- 
 
     <div class="loading-overlay hidden" id="loadingOverlay"><div class="loading-card"><div class="spinner"></div><p style="color:#475569;font-weight:600;">Loading map...</p></div></div>
 
- 
-
 <script>
-
-let map,markers={},officesData=[],footwalkPaths=[],pathGraph={},tileLayer=null,currentTileKey='student';
-
+let map,markers={},officesData=[],footwalkPaths=[],pathGraph={};
 let currentRoute=null,userMarker=null,userAccuracyCircle=null,destMarker=null;
-
 let selectedOffice=null,connectionPoints=[],graphBuilt=false;
-
 let isTracking=false,watchId=null,currentRoutePoints=[];
-
 let lastUserPosition=null,walkToPathLine=null,walkFromPathLine=null;
-
 let directionSteps=[],isNavigating=false;
-
 let realtimeWalkingWatchId=null;
-
 let lastRecalcTime=0;
-
+const RECALC_DIST=10;
 const RECALC_INTERVAL=30000;
-
-const GPS_GOOD_ACCURACY=20;
-
-const GPS_MAX_NAV_ACCURACY=45;
-
-const GPS_MAX_AGE=8000;
-
-let legendOpen=false;
-
-let lastGoodPosition=null;
-
-let travelMode='walk';
-
-let lastProgressIdx=0;
-
-const TRAVEL_MODES={
-
-    walk:{label:'Walk',icon:'fa-person-walking',speed:80,recalcDist:12,arrivalDist:15,maxAccuracy:45,lineColor:'#10b981',walkColor:'#ef4444'},
-
-    motorcycle:{label:'Motorcycle',icon:'fa-motorcycle',speed:250,recalcDist:25,arrivalDist:20,maxAccuracy:60,lineColor:'#2563eb',walkColor:'#f59e0b'}
-
-};
-
-const TILE_LAYERS={
-
-    student:{url:'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',options:{maxZoom:20,detectRetina:true,updateWhenIdle:false,attribution:'&copy; OpenStreetMap contributors, HOT'}},
-
-    standard:{url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',options:{maxZoom:19,detectRetina:true,updateWhenIdle:false,attribution:'&copy; OpenStreetMap contributors'}},
-
-    satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',options:{maxZoom:19,detectRetina:true,updateWhenIdle:false,attribution:'Tiles &copy; Esri'}}
-
-};
-
- 
+let legendOpen=true;
 
 function toggleLegend(){
-
     legendOpen=!legendOpen;
-
     const body=document.getElementById('legendBody');
-
     const toggle=document.getElementById('legendToggle');
-
     if(legendOpen){
-
         body.classList.add('open');
-
         toggle.classList.add('open');
-
     }else{
-
         body.classList.remove('open');
-
         toggle.classList.remove('open');
-
     }
-
 }
-
- 
 
 function initMap(){
-
     showLoading(true);
-
     map=L.map('map',{zoomControl:false,attributionControl:false,scrollWheelZoom:true,doubleClickZoom:true,touchZoom:true,dragging:true,zoomAnimation:true}).setView([9.853,122.890],18);
-
     L.control.zoom({position:'bottomright'}).addTo(map);
-
-    setTileLayer(currentTileKey,false);
-
-   
-
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,detectRetina:true,updateWhenIdle:false}).addTo(map);
+    
     map.on('zoomend',()=>{
-
         const zoom=map.getZoom();
-
         const mc=document.getElementById('map');
-
         zoom<16?mc.classList.add('map-low-zoom'):mc.classList.remove('map-low-zoom');
-
-        if(currentRoute)currentRoute.setStyle({weight:zoom<16?3:(travelMode==='motorcycle'?5.5:5),opacity:zoom<16?0.7:0.92});
-
+        if(currentRoute)currentRoute.setStyle({weight:zoom<16?3:5,opacity:zoom<16?0.7:0.9});
         if(walkToPathLine)walkToPathLine.setStyle({weight:zoom<16?2.5:3.5,opacity:zoom<16?0.6:0.8});
-
         if(walkFromPathLine)walkFromPathLine.setStyle({weight:zoom<16?2.5:3.5,opacity:zoom<16?0.6:0.8});
-
-       
-
+        
+        // Auto-collapse legend when zoomed out on mobile
         if(window.innerWidth<768&&zoom<16&&legendOpen)toggleLegend();
-
+        if(window.innerWidth<768&&zoom>=17&&!legendOpen)toggleLegend();
     });
-
-   
-
+    
     loadOffices();loadFootwalks();setupSearch();
-
     window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(()=>map.invalidateSize(),150);});
-
     window.addEventListener('orientationchange',()=>setTimeout(()=>map.invalidateSize(),300));
-
     map.on('click',()=>{if(document.getElementById('infoPanel').classList.contains('show'))closePanel();if(document.getElementById('directionPopup').classList.contains('show'))toggleDirectionPopup();});
-
 }
-
- 
 
 function setupSearch(){
-
     const i=document.getElementById('searchInput'),c=document.getElementById('searchClear'),s=document.getElementById('searchSuggestions');
-
     i.addEventListener('input',()=>{const q=i.value.trim();c.classList.toggle('visible',q.length>0);if(q.length>=2){const r=officesData.filter(o=>o.name.toLowerCase().includes(q.toLowerCase())||(o.building&&o.building.toLowerCase().includes(q.toLowerCase())));showSuggestions(r);}else s.classList.remove('show');});
-
     i.addEventListener('focus',()=>{const q=i.value.trim();if(q.length>=2){const r=officesData.filter(o=>o.name.toLowerCase().includes(q.toLowerCase())||(o.building&&o.building.toLowerCase().includes(q.toLowerCase())));showSuggestions(r);}});
-
     i.addEventListener('keydown',e=>{if(e.key==='Escape'){clearSearch();i.blur();}});
-
     document.addEventListener('click',e=>{if(!e.target.closest('.search-bar'))s.classList.remove('show');});
-
-    document.addEventListener('click',e=>{if(!e.target.closest('.tile-switcher'))document.getElementById('tileMenu')?.classList.remove('show');});
-
 }
-
 function showSuggestions(r){const c=document.getElementById('searchSuggestions');c.innerHTML=r.length?r.slice(0,6).map(o=>`<div class="suggestion-item" onclick="selectOffice('${o.office_id}')"><div class="suggestion-dot" style="background:${o.category==='Administrative'?'#ef4444':o.category==='Academic'?'#3b82f6':'#10b981'};"></div><div class="suggestion-info"><div class="suggestion-name">${o.name}</div><div class="suggestion-detail">${o.building||'Main'} · Rm ${o.room_number||'N/A'}</div></div></div>`).join(''):'<div style="padding:14px;text-align:center;color:#94a3b8;">No results</div>';c.classList.add('show');}
-
 function clearSearch(){const i=document.getElementById('searchInput');i.value='';document.getElementById('searchClear').classList.remove('visible');document.getElementById('searchSuggestions').classList.remove('show');i.focus();}
 
- 
-
 async function loadOffices(){try{const r=await fetch('{{ route("offices.index") }}');const d=await r.json();if(d.success&&d.data&&d.data.length){officesData=d.data;d.data.forEach(o=>addMarker(o));}else loadDemoOffices();}catch(e){loadDemoOffices();}}
-
 function loadDemoOffices(){officesData=[{office_id:1,name:'Administration',building:'Admin Bldg',room_number:'101',lat:9.8531,lng:122.8901,category:'Administrative'},{office_id:2,name:'Engineering',building:'Engg Block',room_number:'201',lat:9.8532,lng:122.8902,category:'Academic'},{office_id:3,name:'Library',building:'Learning Center',room_number:'GF',lat:9.8533,lng:122.8903,category:'Academic'},{office_id:4,name:'Student Center',building:'Student Hub',room_number:'Main',lat:9.8534,lng:122.8904,category:'Facilities'},{office_id:5,name:'Health Services',building:'Medical Bldg',room_number:'102',lat:9.8535,lng:122.8905,category:'Services'}];officesData.forEach(o=>addMarker(o));}
-
 function addMarker(o){if(!o.lat||!o.lng)return;const c=o.category==='Administrative'?'#ef4444':o.category==='Academic'?'#3b82f6':'#10b981';const icon=L.divIcon({html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>`,iconSize:[14,14],className:''});const m=L.marker([o.lat,o.lng],{icon}).addTo(map);m.on('click',()=>selectOffice(o.office_id));m.bindTooltip(o.name,{direction:'top',offset:[0,-8],className:'mobile-tooltip'});markers[o.office_id]={marker:m,data:o};}
 
- 
-
 async function loadFootwalks(){try{const r=await fetch('{{ route("footwalks.index") }}');const d=await r.json();if(d.success&&d.data?.length>0){footwalkPaths=d.data.map(f=>({id:f.id,name:f.name,color:f.color||'#3b82f6',coordinates:JSON.parse(f.coordinates)}));processFootwalks();}else createDemoFootwalks();}catch(e){createDemoFootwalks();}finally{showLoading(false);}}
-
 function processFootwalks(){footwalkPaths.forEach(p=>drawFootwalk(p));buildPathGraph();showConnectionPoints();graphBuilt=true;showToast(`${footwalkPaths.length} paths loaded`,'success');}
-
 function createDemoFootwalks(){const p=[];for(let i=0;i<officesData.length-1;i++)p.push({id:i+1,name:`Path ${i+1}`,color:'#3b82f6',coordinates:[[officesData[i].lat,officesData[i].lng],[officesData[i+1].lat,officesData[i+1].lng]]});if(officesData.length>=3)p.push({id:p.length+1,name:'Cross A',color:'#3b82f6',coordinates:[[officesData[0].lat,officesData[0].lng],[officesData[2].lat,officesData[2].lng]]});if(officesData.length>=5){p.push({id:p.length+1,name:'Cross B',color:'#3b82f6',coordinates:[[officesData[1].lat,officesData[1].lng],[officesData[3].lat,officesData[3].lng]]});p.push({id:p.length+1,name:'Cross C',color:'#3b82f6',coordinates:[[officesData[2].lat,officesData[2].lng],[officesData[4].lat,officesData[4].lng]]});}footwalkPaths=p;p.forEach(p=>drawFootwalk(p));buildPathGraph();graphBuilt=true;}
-
 function drawFootwalk(p){try{L.polyline(p.coordinates.map(c=>[c[0],c[1]]),{color:p.color||'#3b82f6',weight:2.5,opacity:0.45,dashArray:'5,4'}).addTo(map);}catch(e){}}
 
- 
-
 function buildPathGraph(){pathGraph={};let nid=0;const p2i=new Map();footwalkPaths.forEach(p=>{p.coordinates.forEach(c=>{const k=`${c[0].toFixed(7)},${c[1].toFixed(7)}`;if(!p2i.has(k)){p2i.set(k,`n${nid++}`);pathGraph[p2i.get(k)]={lat:c[0],lng:c[1],edges:[],pathName:p.name};}});});footwalkPaths.forEach(p=>{for(let i=0;i<p.coordinates.length-1;i++){const k1=`${p.coordinates[i][0].toFixed(7)},${p.coordinates[i][1].toFixed(7)}`,k2=`${p.coordinates[i+1][0].toFixed(7)},${p.coordinates[i+1][1].toFixed(7)}`,id1=p2i.get(k1),id2=p2i.get(k2);if(id1&&id2){const d=calcDist(p.coordinates[i][0],p.coordinates[i][1],p.coordinates[i+1][0],p.coordinates[i+1][1]);if(!pathGraph[id1].edges.some(e=>e.to===id2)){pathGraph[id1].edges.push({to:id2,dist:d});pathGraph[id2].edges.push({to:id1,dist:d});}}}});connectionPoints=[];const CD=20;for(let i=0;i<footwalkPaths.length;i++){for(let j=i+1;j<footwalkPaths.length;j++){const cl=findClosest(footwalkPaths[i].coordinates,footwalkPaths[j].coordinates);if(cl.distance<CD){const k1=`${cl.p1.lat.toFixed(7)},${cl.p1.lng.toFixed(7)}`,k2=`${cl.p2.lat.toFixed(7)},${cl.p2.lng.toFixed(7)}`;let id1=p2i.get(k1),id2=p2i.get(k2);if(!id1){id1=`n${nid++}`;p2i.set(k1,id1);pathGraph[id1]={lat:cl.p1.lat,lng:cl.p1.lng,edges:[],isConnection:true};}if(!id2){id2=`n${nid++}`;p2i.set(k2,id2);pathGraph[id2]={lat:cl.p2.lat,lng:cl.p2.lng,edges:[],isConnection:true};}const cd=calcDist(cl.p1.lat,cl.p1.lng,cl.p2.lat,cl.p2.lng);if(!pathGraph[id1].edges.some(e=>e.to===id2)){pathGraph[id1].edges.push({to:id2,dist:cd});pathGraph[id2].edges.push({to:id1,dist:cd});}connectionPoints.push({lat:(cl.p1.lat+cl.p2.lat)/2,lng:(cl.p1.lng+cl.p2.lng)/2});}}}}
-
 function findClosest(c1,c2){let md=Infinity,bp1={lat:c1[0][0],lng:c1[0][1]},bp2={lat:c2[0][0],lng:c2[0][1]};for(let i=0;i<c1.length-1;i++)for(let j=0;j<c2.length-1;j++)for(let t1=0;t1<=20;t1++)for(let t2=0;t2<=20;t2++){const la1=c1[i][0]+(t1/20)*(c1[i+1][0]-c1[i][0]),ln1=c1[i][1]+(t1/20)*(c1[i+1][1]-c1[i][1]),la2=c2[j][0]+(t2/20)*(c2[j+1][0]-c2[j][0]),ln2=c2[j][1]+(t2/20)*(c2[j+1][1]-c2[j][1]),d=calcDist(la1,ln1,la2,ln2);if(d<md){md=d;bp1={lat:la1,lng:ln1};bp2={lat:la2,lng:ln2};}}return{p1:bp1,p2:bp2,distance:md};}
-
 function showConnectionPoints(){connectionPoints.forEach(p=>{L.circleMarker([p.lat,p.lng],{radius:4,color:'#f59e0b',fillColor:'#f59e0b',fillOpacity:0.7,weight:2}).addTo(map);});}
-
 function calcDist(lat1,lng1,lat2,lng2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
-
 function findNearestNode(lat,lng){let n=null,md=Infinity;Object.keys(pathGraph).forEach(id=>{const d=calcDist(lat,lng,pathGraph[id].lat,pathGraph[id].lng);if(d<md){md=d;n={id,node:pathGraph[id],dist:d};}});return n;}
 
- 
-
 function pointToSegmentDist(px,py,x1,y1,x2,y2){
-
     const dx=x2-x1,dy=y2-y1;
-
     const len2=dx*dx+dy*dy;
-
     if(len2===0)return calcDist(px,py,x1,y1);
-
     let t=((px-x1)*dx+(py-y1)*dy)/len2;
-
     t=Math.max(0,Math.min(1,t));
-
     return calcDist(px,py,x1+t*dx,y1+t*dy);
-
 }
-
- 
 
 function calcDeviation(lat,lng,routePts){
-
     let minD=Infinity;
-
     for(let i=0;i<routePts.length-1;i++){
-
         const d=pointToSegmentDist(lat,lng,routePts[i][0],routePts[i][1],routePts[i+1][0],routePts[i+1][1]);
-
         minD=Math.min(minD,d);
-
     }
-
     return minD;
-
 }
-
- 
 
 function findShortestPath(sl,sn,el,en){
-
     if(!Object.keys(pathGraph).length)return[[sl,sn],[el,en]];
-
     const snode=findNearestNode(sl,sn),enode=findNearestNode(el,en);
-
     if(!snode||!enode)return[[sl,sn],[el,en]];
-
     const dists={},prev={},unv=new Set();Object.keys(pathGraph).forEach(id=>{dists[id]=Infinity;unv.add(id);});dists[snode.id]=0;
-
     while(unv.size){let cur=null,md=Infinity;unv.forEach(id=>{if(dists[id]<md){md=dists[id];cur=id;}});if(!cur||cur===enode.id)break;unv.delete(cur);pathGraph[cur]?.edges.forEach(e=>{if(unv.has(e.to)){const a=dists[cur]+e.dist;if(a<dists[e.to]){dists[e.to]=a;prev[e.to]=cur;}}});}
-
     if(dists[enode.id]===Infinity)return[[sl,sn],[el,en]];
-
     const pids=[];let c=enode.id,sf=0;while(c&&c!==snode.id&&sf++<1000){pids.unshift(c);c=prev[c];}pids.unshift(snode.id);
-
     const pts=[[sl,sn]];if(snode.dist>0.5)pts.push([pathGraph[snode.id].lat,pathGraph[snode.id].lng]);pids.forEach(id=>{if(pathGraph[id])pts.push([pathGraph[id].lat,pathGraph[id].lng]);});if(enode.dist>0.5)pts.push([pathGraph[enode.id].lat,pathGraph[enode.id].lng]);pts.push([el,en]);
-
     const uq=[];pts.forEach(p=>{if(!uq.length||Math.abs(uq[uq.length-1][0]-p[0])>1e-6||Math.abs(uq[uq.length-1][1]-p[1])>1e-6)uq.push(p);});return uq;
-
 }
-
- 
 
 function getCategoryIcon(cat){
-
     const c=cat?.toLowerCase()||'';
-
     if(c.includes('admin'))return{icon:'fa-building-columns',color:'#ef4444',bg:'#fef2f2',badge:'badge-admin'};
-
     if(c.includes('academ'))return{icon:'fa-graduation-cap',color:'#2563eb',bg:'#eff6ff',badge:'badge-academic'};
-
     return{icon:'fa-building',color:'#059669',bg:'#ecfdf5',badge:'badge-facility'};
-
 }
-
- 
 
 function selectOffice(oid){
-
     const o=officesData.find(o=>o.office_id==oid);if(!o)return;
-
     if(isNavigating&&selectedOffice&&selectedOffice.office_id!==o.office_id)stopNavigation();
-
     selectedOffice=o;
-
-   
-
+    
     const cat=getCategoryIcon(o.category);
-
-   
-
+    
     document.getElementById('officeName').textContent=o.name;
-
     document.getElementById('officeSubtitle').textContent=`${o.building||'Main Building'} · Room ${o.room_number||'N/A'}`;
-
     document.getElementById('officeCategory').innerHTML=`<span class="category-badge ${cat.badge}"><i class="fas ${cat.icon}"></i>${o.category||'Facility'}</span>`;
-
-   
-
+    
     document.getElementById('officeDetails').innerHTML=`
-
         <div class="info-card">
-
             <span class="info-card-icon"><i class="fas fa-building" style="color:#3b82f6;"></i></span>
-
             <span class="info-card-label">Building</span>
-
             <span class="info-card-value">${o.building||'Main'}</span>
-
         </div>
-
         <div class="info-card">
-
             <span class="info-card-icon"><i class="fas fa-door-open" style="color:#10b981;"></i></span>
-
             <span class="info-card-label">Room Number</span>
-
             <span class="info-card-value">${o.room_number||'N/A'}</span>
-
         </div>
-
     `;
-
-   
-
+    
     document.getElementById('infoPanel').classList.add('show');
-
     document.getElementById('searchSuggestions').classList.remove('show');
-
     document.getElementById('searchInput').value=o.name;
-
     document.getElementById('searchClear').classList.add('visible');
-
     map.flyTo([o.lat,o.lng],18,{duration:0.7});
-
     if(markers[o.office_id])markers[o.office_id].marker.openTooltip();
-
 }
-
 function closePanel(){document.getElementById('infoPanel').classList.remove('show');}
-
 function toggleDirectionPopup(){const p=document.getElementById('directionPopup'),b=document.querySelector('.nav-eta-toggle i');p.classList.toggle('show');if(b)b.className=p.classList.contains('show')?'fas fa-chevron-down':'fas fa-chevron-up';}
 
- 
-
-function getPositionHeading(pos){
-
-    const h=Number.isFinite(pos.coords.heading)?pos.coords.heading:null;
-
-    if(h!==null)return h;
-
-    if(lastGoodPosition)return bearingBetween(lastGoodPosition.lat,lastGoodPosition.lng,pos.coords.latitude,pos.coords.longitude);
-
-    return 0;
-
-}
-
-function toggleTileMenu(){
-
-    document.getElementById('tileMenu')?.classList.toggle('show');
-
-}
-
-function setTileLayer(key,announce=true){
-
-    const cfg=TILE_LAYERS[key]||TILE_LAYERS.student;
-
-    if(tileLayer)map.removeLayer(tileLayer);
-
-    tileLayer=L.tileLayer(cfg.url,cfg.options).addTo(map);
-
-    currentTileKey=key;
-
-    document.querySelectorAll('.tile-option').forEach(btn=>btn.classList.toggle('active',btn.dataset.tile===key));
-
-    document.getElementById('tileMenu')?.classList.remove('show');
-
-    if(announce)showToast(`${key==='student'?'Student':key==='satellite'?'Satellite':'Street'} map tiles active`,'info');
-
-}
-
-function setTravelMode(mode){
-
-    travelMode=TRAVEL_MODES[mode]?mode:'walk';
-
-    document.getElementById('walkModeBtn')?.classList.toggle('active',travelMode==='walk');
-
-    document.getElementById('motorModeBtn')?.classList.toggle('active',travelMode==='motorcycle');
-
-    const icon=document.querySelector('.nav-eta-icon i');
-
-    if(icon)icon.className=`fas ${TRAVEL_MODES[travelMode].icon}`;
-
-    if(isNavigating&&lastUserPosition&&selectedOffice){
-
-        lastRecalcTime=Date.now();
-
-        calculateAndDrawRoute(lastUserPosition.lat,lastUserPosition.lng,selectedOffice.lat,selectedOffice.lng,true);
-
-        showToast(`${TRAVEL_MODES[travelMode].label} mode active`,'info');
-
-    }
-
-}
-
-function getTravelConfig(){return TRAVEL_MODES[travelMode]||TRAVEL_MODES.walk;}
-
-function bearingBetween(lat1,lng1,lat2,lng2){
-
-    const a=lat1*Math.PI/180,b=lat2*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
-
-    const y=Math.sin(dLng)*Math.cos(b);
-
-    const x=Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(dLng);
-
-    return (Math.atan2(y,x)*180/Math.PI+360)%360;
-
-}
-
-function updateGpsAccuracy(acc){
-
-    const chip=document.getElementById('gpsAccuracy'),text=document.getElementById('gpsAccuracyText');
-
-    if(!chip||!text)return;
-
-    if(!Number.isFinite(acc)){chip.className='gps-accuracy';return;}
-
-    const level=acc<=GPS_GOOD_ACCURACY?'good':acc<=GPS_MAX_NAV_ACCURACY?'warn':'bad';
-
-    chip.className=`gps-accuracy show ${level}`;
-
-    text.textContent=`GPS ±${Math.round(acc)}m`;
-
-}
-
-function isFreshAccuratePosition(pos,forNavigation=false){
-
-    const age=Date.now()-pos.timestamp;
-
-    const acc=pos.coords.accuracy;
-
-    const maxAcc=forNavigation?getTravelConfig().maxAccuracy:GPS_MAX_NAV_ACCURACY;
-
-    updateGpsAccuracy(acc);
-
-    return age<=GPS_MAX_AGE&&(!Number.isFinite(acc)||acc<=maxAcc);
-
-}
-
-function smoothPosition(pos){
-
-    const next={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,heading:getPositionHeading(pos),timestamp:pos.timestamp};
-
-    if(!lastGoodPosition){lastGoodPosition=next;return next;}
-
-    const jump=calcDist(lastGoodPosition.lat,lastGoodPosition.lng,next.lat,next.lng);
-
-    const alpha=jump>25?0.8:0.35;
-
-    lastGoodPosition={...next,lat:lastGoodPosition.lat+(next.lat-lastGoodPosition.lat)*alpha,lng:lastGoodPosition.lng+(next.lng-lastGoodPosition.lng)*alpha};
-
-    return lastGoodPosition;
-
-}
-
-function focusUserLocation(lat,lng,zoom=19){
-
-    map.setView([lat,lng],zoom,{animate:true,duration:0.45});
-
-}
-
-function getBestCurrentPosition(options={}){
-
-    const timeout=options.timeout||9000,forNavigation=!!options.forNavigation;
-
-    return new Promise((resolve,reject)=>{
-
-        if(!navigator.geolocation){reject(new Error('Geolocation unavailable'));return;}
-
-        let best=null,done=false,wid=null;
-
-        const finish=()=>{if(done)return;done=true;if(wid!==null)navigator.geolocation.clearWatch(wid);best?resolve(best):reject(new Error('No accurate GPS fix'));};
-
-        wid=navigator.geolocation.watchPosition(pos=>{
-
-            if(!best||pos.coords.accuracy<best.coords.accuracy)best=pos;
-
-            if(isFreshAccuratePosition(pos,forNavigation)&&pos.coords.accuracy<=GPS_GOOD_ACCURACY)finish();
-
-        },err=>{if(best)finish();else{done=true;if(wid!==null)navigator.geolocation.clearWatch(wid);reject(err);}},{enableHighAccuracy:true,maximumAge:0,timeout});
-
-        setTimeout(finish,timeout);
-
-    });
-
-}
-
-async function navigateToOffice(){
-
+function navigateToOffice(){
     if(!selectedOffice){showToast('Select an office first','error');return;}
-
     if(!graphBuilt){showToast('Paths loading...','error');return;}
-
     if(isNavigating)stopNavigation();
-
-    showToast('Getting best GPS fix...','info');
-
-    try{
-
-        const pos=await getBestCurrentPosition({timeout:10000,forNavigation:true});
-
-        if(!isFreshAccuratePosition(pos,true)){showToast('GPS is weak. Move outside or near a window.','error');return;}
-
-        const loc=smoothPosition(pos);
-
-        lastUserPosition={lat:loc.lat,lng:loc.lng};
-
-        calculateAndDrawRoute(loc.lat,loc.lng,selectedOffice.lat,selectedOffice.lng);
-
+    showToast('Getting location...','info');
+    navigator.geolocation.getCurrentPosition(pos=>{
+        lastUserPosition={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        calculateAndDrawRoute(pos.coords.latitude,pos.coords.longitude,selectedOffice.lat,selectedOffice.lng);
         isNavigating=true;
-
-        focusUserLocation(loc.lat,loc.lng);
-
         startRealtimeWalking();
-
-    }catch(e){
-
-        showToast('Enable location services','error');
-
-    }
-
+    },()=>showToast('Enable location services','error'),{enableHighAccuracy:true,timeout:10000});
 }
-
- 
 
 function calculateAndDrawRoute(sl,sn,el,en,recalc=false){
-
-    const pts=findShortestPath(sl,sn,el,en);currentRoutePoints=pts;clearRoutes(recalc);
-
-    const mode=getTravelConfig();
-
-    lastProgressIdx=0;
-
-   
-
+    const pts=findShortestPath(sl,sn,el,en);currentRoutePoints=pts;clearRoutes();
+    
     if(pts.length>1){
-
-        walkToPathLine=L.polyline([pts[0],pts[1]],{color:mode.walkColor,weight:3.5,dashArray:travelMode==='motorcycle'?'10,5':'7,5',opacity:0.85,smoothFactor:1}).addTo(map);
-
+        walkToPathLine=L.polyline([pts[0],pts[1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8,smoothFactor:1}).addTo(map);
     }
-
-   
-
+    
     if(pts.length>2){
-
-        currentRoute=L.polyline(pts.slice(1,pts.length-1),{color:mode.lineColor,weight:travelMode==='motorcycle'?5.5:5,dashArray:travelMode==='motorcycle'?'14,8':'10,7',opacity:0.92,lineCap:'round',lineJoin:'round',smoothFactor:0.5,interactive:false}).addTo(map);
-
+        currentRoute=L.polyline(pts.slice(1,pts.length-1),{color:'#10b981',weight:5,dashArray:'10,7',opacity:0.9,lineCap:'round',lineJoin:'round',smoothFactor:0.5,interactive:false}).addTo(map);
     }
-
-   
-
+    
     if(pts.length>1){
-
-        walkFromPathLine=L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:mode.walkColor,weight:3.5,dashArray:travelMode==='motorcycle'?'10,5':'7,5',opacity:0.85,smoothFactor:1}).addTo(map);
-
+        walkFromPathLine=L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8,smoothFactor:1}).addTo(map);
     }
-
-   
-
+    
     const dIcon=L.divIcon({html:'<div class="dest-marker"></div>',iconSize:[20,20],iconAnchor:[10,20]});
-
     destMarker=L.marker([el,en],{icon:dIcon}).addTo(map);
-
-   
-
+    
     if(userMarker){map.removeLayer(userMarker);userMarker=null;}
-
     updateWalkingMarker(sl,sn);
-
-   
-
+    
     let td=0;
-
     for(let i=0;i<pts.length-1;i++)td+=calcDist(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
-
-   
-
+    
     const eta=document.getElementById('navEtaBar');eta.classList.remove('hide');eta.classList.add('show');
-
     document.getElementById('navEtaDest').textContent=selectedOffice.name;
-
-    document.querySelector('.nav-eta-icon i').className=`fas ${mode.icon}`;
-
-    document.getElementById('navEtaTime').textContent=formatEta(td);
-
-   
-
+    document.getElementById('navEtaTime').textContent=`${Math.round(td)}m · ${(td/80).toFixed(1)} min`;
+    
     directionSteps=[
-
         {icon:'fa-location-dot',color:'#10b981',text:'You are here'},
-
-        {icon:mode.icon,color:mode.walkColor,text:`${mode.label} to nearest campus path`},
-
-        {icon:'fa-road',color:mode.lineColor,text:`Follow campus paths (${mode.label.toLowerCase()} mode)`},
-
-        {icon:mode.icon,color:mode.walkColor,text:`${mode.label} to destination`},
-
+        {icon:'fa-arrow-right',color:'#ef4444',text:'Walk to nearest footwalk (red path)'},
+        {icon:'fa-road',color:'#10b981',text:'Follow footwalks (green path)'},
+        {icon:'fa-arrow-right',color:'#ef4444',text:'Walk to destination (red path)'},
         {icon:'fa-flag-checkered',color:'#3b82f6',text:`Arrive at <b>${selectedOffice.name}</b>`}
-
     ];
-
     updateDirectionContent();
-
-   
-
+    
     if(!recalc){
-
-        focusUserLocation(sl,sn);
-
-        showToast(`Route: ${Math.round(td)}m - north up`, 'success');
-
+        map.fitBounds(L.latLngBounds(pts),{padding:[80,80],maxZoom:18});
+        showToast(`Route: ${Math.round(td)}m`,'success');
     }
-
 }
 
-function formatEta(distance){
-
-    const mode=getTravelConfig();
-
-    const minutes=Math.max(1,Math.round(distance/mode.speed));
-
-    return `${Math.round(distance)}m · ${minutes} min · ${mode.label}`;
-
-}
-
- 
-
-function updateWalkingMarker(lat,lng,acc=null,heading=0){
-
+function updateWalkingMarker(lat,lng){
     if(userMarker){map.removeLayer(userMarker);userMarker=null;}
-
     if(userAccuracyCircle){map.removeLayer(userAccuracyCircle);userAccuracyCircle=null;}
-
     userMarker=L.marker([lat,lng],{
-
         icon:L.divIcon({
-
-            html:`<div class="walking-live-marker" style="transform:rotate(${heading}deg)"></div>`,
-
+            html:'<div class="walking-live-marker"></div>',
             iconSize:[24,24],
-
             iconAnchor:[12,12],
-
             className:''
-
         }),
-
         zIndexOffset:1000
-
     }).addTo(map);
-
-    if(acc&&acc<80)userAccuracyCircle=L.circle([lat,lng],{radius:acc,color:'#f59e0b',weight:1,opacity:0.35,fillOpacity:0.08}).addTo(map);
-
 }
-
- 
 
 function startRealtimeWalking(){
-
     stopRealtimeWalking();
-
     lastRecalcTime=Date.now();
-
     document.getElementById('liveBadge').classList.add('show');
-
     document.getElementById('gpsBtn').classList.add('active');
-
     showToast('Real-time navigation active - start walking!','success');
-
-   
-
+    
     realtimeWalkingWatchId=navigator.geolocation.watchPosition(
-
         pos=>{
-
-            if(!isFreshAccuratePosition(pos,true)){
-
-                showToast('Waiting for a stronger GPS signal','info');
-
-                return;
-
-            }
-
-            const loc=smoothPosition(pos);
-
-            const {lat:latitude,lng:longitude,accuracy,heading}=loc;
-
+            const {latitude,longitude}=pos.coords;
             lastUserPosition={lat:latitude,lng:longitude};
-
-            updateWalkingMarker(latitude,longitude,accuracy,heading);
-
-           
-
+            updateWalkingMarker(latitude,longitude);
+            
             if(selectedOffice&&currentRoutePoints.length>0){
-
                 const distance=calcDist(latitude,longitude,selectedOffice.lat,selectedOffice.lng);
-
-                const mode=getTravelConfig();
-
-                document.getElementById('navEtaTime').textContent=formatEta(distance);
-
-               
-
-                if(distance<mode.arrivalDist){
-
+                document.getElementById('navEtaTime').textContent=`${Math.round(distance)}m · ${(distance/80).toFixed(1)} min`;
+                
+                if(distance<15){
                     showToast(`🎉 You've arrived at ${selectedOffice.name}!`,'success');
-
                     if(navigator.vibrate)navigator.vibrate([200,100,200,100,200]);
-
                     stopNavigation();
-
                     return;
-
                 }
-
-               
-
+                
                 updateRouteProgress(latitude,longitude);
-
-               
-
+                
                 if(currentRoutePoints.length>=2){
-
                     const dev=calcDeviation(latitude,longitude,currentRoutePoints);
-
-                    if(dev>mode.recalcDist||(Date.now()-lastRecalcTime>RECALC_INTERVAL)){
-
+                    if(dev>RECALC_DIST||(Date.now()-lastRecalcTime>RECALC_INTERVAL)){
                         lastRecalcTime=Date.now();
-
                         calculateAndDrawRoute(latitude,longitude,selectedOffice.lat,selectedOffice.lng,true);
-
                     }
-
                 }
-
             }
-
-           
-
+            
             if(isNavigating){
-
-                focusUserLocation(latitude,longitude,map.getZoom()<18?19:map.getZoom());
-
+                map.panTo([latitude,longitude],{animate:true,duration:0.5});
             }
-
         },
-
         err=>{
-
             if(err.code===1){showToast('GPS permission denied','error');stopNavigation();}
-
         },
-
-        {enableHighAccuracy:true,maximumAge:0,timeout:12000}
-
+        {enableHighAccuracy:true,maximumAge:1000,timeout:10000}
     );
-
 }
-
- 
 
 function updateRouteProgress(lat,lng){
-
     if(!currentRoute||!currentRoutePoints||currentRoutePoints.length<3)return;
-
-    const mode=getTravelConfig();
-
-   
-
+    
     let closestIdx=0;
-
     let minDist=Infinity;
-
-   
-
+    
     for(let i=0;i<currentRoutePoints.length;i++){
-
         const d=calcDist(lat,lng,currentRoutePoints[i][0],currentRoutePoints[i][1]);
-
         if(d<minDist){minDist=d;closestIdx=i;}
-
     }
-
-    if(closestIdx<lastProgressIdx&&calcDist(lat,lng,currentRoutePoints[lastProgressIdx][0],currentRoutePoints[lastProgressIdx][1])<mode.recalcDist*1.5){
-
-        closestIdx=lastProgressIdx;
-
-    }else{
-
-        lastProgressIdx=closestIdx;
-
-    }
-
-   
-
+    
     if(walkToPathLine){
-
         map.removeLayer(walkToPathLine);
-
         walkToPathLine=null;
-
     }
-
-   
-
+    
     const nextIdx=Math.min(closestIdx+1,currentRoutePoints.length-1);
-
     if(nextIdx>0){
-
         walkToPathLine=L.polyline([
-
             [lat,lng],
-
             [currentRoutePoints[nextIdx][0],currentRoutePoints[nextIdx][1]]
-
-        ],{color:mode.walkColor,weight:3.5,dashArray:travelMode==='motorcycle'?'10,5':'7,5',opacity:0.85,smoothFactor:1}).addTo(map);
-
+        ],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8,smoothFactor:1}).addTo(map);
     }
-
-   
-
+    
     if(currentRoute&&closestIdx<currentRoutePoints.length-1){
-
         const remaining=currentRoutePoints.slice(closestIdx);
-
         currentRoute.setLatLngs(remaining);
-
     }
-
 }
-
- 
 
 function stopRealtimeWalking(){
-
     if(realtimeWalkingWatchId){
-
         navigator.geolocation.clearWatch(realtimeWalkingWatchId);
-
         realtimeWalkingWatchId=null;
-
     }
-
 }
 
- 
-
-function clearRoutes(keepRealtime=false){
-
-    if(!keepRealtime)stopRealtimeWalking();
-
+function clearRoutes(){
+    stopRealtimeWalking();
     if(currentRoute){map.removeLayer(currentRoute);currentRoute=null;}
-
     if(walkToPathLine){map.removeLayer(walkToPathLine);walkToPathLine=null;}
-
     if(walkFromPathLine){map.removeLayer(walkFromPathLine);walkFromPathLine=null;}
-
     if(destMarker){map.removeLayer(destMarker);destMarker=null;}
-
     currentRoutePoints=[];
-
-    lastProgressIdx=0;
-
 }
-
 function updateDirectionContent(){document.getElementById('directionContent').innerHTML=directionSteps.map(s=>`<div class="direction-step"><div class="direction-step-icon"><i class="fas ${s.icon}" style="color:${s.color};"></i></div><div>${s.text}</div></div>`).join('');}
 
- 
-
-function startLiveTracking(){if(watchId)return;isTracking=true;document.getElementById('liveBadge').classList.add('show');document.getElementById('gpsBtn').classList.add('active');showToast('Live GPS active - north up','success');watchId=navigator.geolocation.watchPosition(pos=>{if(!isFreshAccuratePosition(pos,false))return;const loc=smoothPosition(pos);lastUserPosition={lat:loc.lat,lng:loc.lng};if(!isNavigating){updateUserMarker(loc.lat,loc.lng,loc.accuracy,loc.heading);}if(isTracking)focusUserLocation(loc.lat,loc.lng,map.getZoom()<18?19:map.getZoom());},err=>{if(err.code===1){showToast('GPS permission denied','error');stopLiveTracking();}},{enableHighAccuracy:true,maximumAge:0,timeout:15000});}
-
-function stopLiveTracking(){if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}isTracking=false;document.getElementById('liveBadge').classList.remove('show');document.getElementById('gpsBtn').classList.remove('active');if(!isNavigating)document.getElementById('gpsAccuracy')?.classList.remove('show');}
-
+function startLiveTracking(){if(watchId)return;isTracking=true;document.getElementById('liveBadge').classList.add('show');document.getElementById('gpsBtn').classList.add('active');showToast('Live GPS active','success');watchId=navigator.geolocation.watchPosition(pos=>{const{latitude,longitude,accuracy}=pos.coords;lastUserPosition={lat:latitude,lng:longitude};if(!isNavigating){updateUserMarker(latitude,longitude,accuracy);}if(isTracking)map.setView([latitude,longitude],18,{animate:true,duration:0.5});},err=>{if(err.code===1){showToast('GPS permission denied','error');stopLiveTracking();}},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});}
+function stopLiveTracking(){if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}isTracking=false;document.getElementById('liveBadge').classList.remove('show');document.getElementById('gpsBtn').classList.remove('active');}
 function toggleLiveTracking(){isTracking?(stopLiveTracking(),showToast('Tracking off','info')):startLiveTracking();}
-
-async function centerToUser(){try{showToast('Getting best GPS fix...','info');const pos=await getBestCurrentPosition({timeout:8000});const loc=smoothPosition(pos);updateUserMarker(loc.lat,loc.lng,loc.accuracy,loc.heading);focusUserLocation(loc.lat,loc.lng);if(!isTracking)startLiveTracking();showToast('Location found - north up','success');}catch(e){showToast('Unable to get location','error');}}
-
+function centerToUser(){navigator.geolocation.getCurrentPosition(pos=>{updateUserMarker(pos.coords.latitude,pos.coords.longitude);map.setView([pos.coords.latitude,pos.coords.longitude],18);if(!isTracking)startLiveTracking();showToast('Location found','success');},()=>showToast('Unable to get location','error'),{enableHighAccuracy:true,timeout:8000});}
 function stopNavigation(){
-
     stopRealtimeWalking();
-
     clearRoutes();
-
     if(userMarker){map.removeLayer(userMarker);userMarker=null;}
-
     if(userAccuracyCircle){map.removeLayer(userAccuracyCircle);userAccuracyCircle=null;}
-
     const eta=document.getElementById('navEtaBar');eta.classList.add('hide');eta.classList.remove('show');
-
     document.getElementById('directionPopup').classList.remove('show');
-
     const ti=document.querySelector('.nav-eta-toggle i');if(ti)ti.className='fas fa-chevron-up';
-
     currentRoutePoints=[];directionSteps=[];isNavigating=false;
-
     stopLiveTracking();
-
 }
-
-async function findNearestOffice(){try{showToast('Checking nearest office...','info');const pos=await getBestCurrentPosition({timeout:8000});const loc=smoothPosition(pos);let n=null,md=Infinity;officesData.forEach(o=>{if(o.lat&&o.lng){const d=calcDist(loc.lat,loc.lng,o.lat,o.lng);if(d<md){md=d;n=o;}}});if(n){updateUserMarker(loc.lat,loc.lng,loc.accuracy,loc.heading);showToast(`Nearest: ${n.name} (${Math.round(md)}m)`,'success');selectOffice(n.office_id);}}catch(e){showToast('Enable location','error');}}
-
+function findNearestOffice(){navigator.geolocation.getCurrentPosition(pos=>{let n=null,md=Infinity;officesData.forEach(o=>{if(o.lat&&o.lng){const d=calcDist(pos.coords.latitude,pos.coords.longitude,o.lat,o.lng);if(d<md){md=d;n=o;}}});if(n){showToast(`Nearest: ${n.name} (${Math.round(md)}m)`,'success');selectOffice(n.office_id);}},()=>showToast('Enable location','error'),{enableHighAccuracy:true,timeout:8000});}
 function resetMap(){
-
     stopNavigation();
-
     closePanel();
-
     stopLiveTracking();
-
     stopRealtimeWalking();
-
     if(userMarker){map.removeLayer(userMarker);userMarker=null;}
-
-    if(userAccuracyCircle){map.removeLayer(userAccuracyCircle);userAccuracyCircle=null;}
-
-    lastGoodPosition=null;
-
     map.setView([9.853,122.890],18);
-
     document.getElementById('searchInput').value='';
-
     document.getElementById('searchClear').classList.remove('visible');
-
     document.getElementById('searchSuggestions').classList.remove('show');
-
-    document.getElementById('gpsAccuracy')?.classList.remove('show');
-
-    document.getElementById('tileMenu')?.classList.remove('show');
-
 }
-
-function updateUserMarker(lat,lng,acc=null,heading=0){
-
+function updateUserMarker(lat,lng,acc=null){
     if(userMarker)map.removeLayer(userMarker);
-
     if(userAccuracyCircle)map.removeLayer(userAccuracyCircle);
-
-  userMarker=L.marker([lat,lng],{icon:L.divIcon({html:`<div class="user-marker" style="transform:rotate(${heading}deg)"></div>`,iconSize:[18,18],iconAnchor:[9,9],className:''}),zIndexOffset:1000}).addTo(map);
-
-  if(acc&&acc<80)userAccuracyCircle=L.circle([lat,lng],{radius:acc,color:'#10b981',weight:1,opacity:0.25,fillOpacity:0.06}).addTo(map);
-
+    userMarker=L.marker([lat,lng],{icon:L.divIcon({html:'<div class="user-marker"></div>',iconSize:[16,16],className:''}),zIndexOffset:1000}).addTo(map);
+    if(acc&&acc<50)userAccuracyCircle=L.circle([lat,lng],{radius:acc,color:'#10b981',weight:1,opacity:0.25,fillOpacity:0.06}).addTo(map);
 }
-
 function showToast(msg,type){const ex=document.querySelector('.toast');if(ex){ex.style.opacity='0';ex.style.transform='translateY(10px)';ex.style.transition='all 0.25s';setTimeout(()=>ex.remove(),250);}const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<i class="fas fa-${type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle'}"></i> ${msg}`;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all 0.3s';setTimeout(()=>t.remove(),300);},type==='error'?4000:2500);}
-
 function showLoading(s){document.getElementById('loadingOverlay').classList.toggle('hidden',!s);}
-
 document.addEventListener('DOMContentLoaded',initMap);
-
 </script>
-
 </body>
-
 </html>
