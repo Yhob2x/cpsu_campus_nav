@@ -56,6 +56,8 @@
 
         #map{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
 
+        #map.route-up .leaflet-map-pane{transition:transform 0.35s ease-out;transform-origin:50vw 50vh}
+
  
 
         .header{position:fixed;top:0;left:0;right:0;z-index:50;padding:8px 10px;padding-top:calc(8px + var(--sat));display:flex;align-items:center;gap:8px;pointer-events:none}
@@ -120,25 +122,27 @@
 
  
 
-        /* OPTIMIZED: Collapsible floating legend for mobile */
+        /* Production mobile legend: icon-only trigger, details only on tap */
 
-        .legend-container{position:fixed;bottom:68px;bottom:calc(68px + var(--sab));left:8px;right:8px;z-index:44;pointer-events:none}
+        .legend-container{position:fixed;right:14px;bottom:172px;bottom:calc(172px + var(--sab));z-index:45;pointer-events:none;display:flex;align-items:flex-end;gap:8px;flex-direction:row-reverse}
 
-        .legend-floating{pointer-events:auto;background:rgba(15,23,42,0.9);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.15);max-width:100%;overflow:hidden;transition:all 0.3s ease}
+        .legend-floating{pointer-events:auto;display:flex;align-items:flex-end;gap:8px}
 
-        .legend-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;-webkit-user-select:none}
+        .legend-header{width:44px;height:44px;border-radius:50%;background:white;color:#475569;box-shadow:0 4px 16px rgba(0,0,0,0.18);border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;transition:all 0.2s}
 
-        .legend-title{color:white;font-size:0.7rem;font-weight:700;display:flex;align-items:center;gap:6px}
+        .legend-header:active{transform:scale(0.92)}
 
-        .legend-title i{font-size:0.65rem;opacity:0.7}
+        .legend-header.active{background:#0f172a;color:white;border-color:#0f172a}
 
-        .legend-toggle{color:white;font-size:0.7rem;transition:transform 0.3s ease;opacity:0.7}
+        .legend-title{display:flex;align-items:center;justify-content:center}
 
-        .legend-toggle.open{transform:rotate(180deg)}
+        .legend-title span,.legend-toggle{display:none}
 
-        .legend-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:4px;padding:0 12px;max-height:0;overflow:hidden;transition:all 0.3s ease;opacity:0}
+        .legend-title i{font-size:1rem;opacity:1}
 
-        .legend-body.open{max-height:120px;padding:0 12px 8px;opacity:1}
+        .legend-body{display:grid;grid-template-columns:repeat(2,minmax(88px,1fr));gap:5px;padding:8px;width:min(248px,calc(100vw - 82px));background:rgba(15,23,42,0.92);backdrop-filter:blur(18px);border-radius:14px;box-shadow:0 8px 26px rgba(0,0,0,0.24);border:1px solid rgba(255,255,255,0.14);opacity:0;transform:translateX(8px) scale(0.96);transform-origin:right bottom;visibility:hidden;pointer-events:none;transition:opacity 0.18s,transform 0.18s,visibility 0.18s}
+
+        .legend-body.open{opacity:1;transform:translateX(0) scale(1);visibility:visible;pointer-events:auto}
 
         .legend-tag{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.1);font-size:0.6rem;color:rgba(255,255,255,0.85);white-space:nowrap;font-weight:500}
 
@@ -168,7 +172,7 @@
 
     @keyframes gpsPulse{0%,100%{box-shadow:0 4px 16px rgba(16,185,129,0.4)}50%{box-shadow:0 4px 24px rgba(16,185,129,0.7)}}
 
-    .gps-accuracy{position:fixed;right:14px;bottom:172px;bottom:calc(172px + var(--sab));z-index:44;background:rgba(15,23,42,0.88);color:white;border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:6px 10px;font-size:0.68rem;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.16);backdrop-filter:blur(14px);display:none;align-items:center;gap:6px}
+    .gps-accuracy{position:fixed;right:66px;bottom:125px;bottom:calc(125px + var(--sab));z-index:44;background:rgba(15,23,42,0.88);color:white;border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:6px 10px;font-size:0.68rem;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.16);backdrop-filter:blur(14px);display:none;align-items:center;gap:6px}
 
     .gps-accuracy.show{display:flex}.gps-accuracy.good i{color:#10b981}.gps-accuracy.warn i{color:#f59e0b}.gps-accuracy.bad i{color:#ef4444}
 
@@ -314,7 +318,7 @@
 
             .bottom-controls{left:20px;transform:none}
 
-            .legend-container{left:20px;right:auto;max-width:320px}
+            .legend-container{left:auto;right:20px;max-width:none}
 
             .info-panel{left:20px;right:auto;width:380px;border-radius:20px;bottom:20px;transform:translateY(calc(100% + 20px));max-height:55vh}
 
@@ -322,17 +326,22 @@
 
             .direction-popup{left:20px;right:auto;width:380px;border-radius:20px;bottom:20px;transform:translateY(calc(100% + 20px))}
 
-            .direction-popup.show{transform:translateY(0)}
+        .direction-popup.show{transform:translateY(0)}
 
         }
 
-       
+        @media(max-width:420px){
+            .legend-body{grid-template-columns:1fr;width:150px}
+            .legend-tag{font-size:0.58rem;padding:5px 7px}
+        }
+
+        
 
         @media(max-height:400px){
 
             .search-bar{top:calc(40px + var(--sat))}
 
-            .legend-container{display:none}
+            .legend-body{display:none}
 
             .info-panel{max-height:70vh}
 
@@ -359,8 +368,6 @@
         <div class="header-btns">
 
             <a href="{{ url('/directory') }}" class="icon-btn"><i class="fas fa-list"></i></a>
-
-            <a href="{{ url('/login') }}" class="icon-btn"><i class="fas fa-user-shield"></i></a>
 
         </div>
 
@@ -432,17 +439,17 @@
 
     <!-- OPTIMIZED: Collapsible floating legend -->
 
-    <div class="legend-container">
+    <div class="legend-container" id="legendContainer">
 
         <div class="legend-floating" id="legendFloating">
 
-            <div class="legend-header" onclick="toggleLegend()">
+            <button class="legend-header" id="legendHeader" onclick="toggleLegend()" title="Map legend" aria-label="Map legend" aria-expanded="false">
 
-                <span class="legend-title"><i class="fas fa-map-pin"></i> Map Legend</span>
+                <span class="legend-title"><i class="fas fa-map-pin"></i><span>Map Legend</span></span>
 
                 <i class="fas fa-chevron-down legend-toggle" id="legendToggle"></i>
 
-            </div>
+            </button>
 
             <div class="legend-body" id="legendBody">
 
@@ -554,6 +561,14 @@ let legendOpen=false;
 
 let lastGoodPosition=null;
 
+let lastAcceptedFixTime=0;
+
+let lastWeakGpsToast=0;
+
+let mapRotation=0;
+
+let routeUpMode=false;
+
 let travelMode='walk';
 
 let lastProgressIdx=0;
@@ -586,17 +601,27 @@ function toggleLegend(){
 
     const toggle=document.getElementById('legendToggle');
 
+    const header=document.getElementById('legendHeader');
+
     if(legendOpen){
 
         body.classList.add('open');
 
         toggle.classList.add('open');
 
+        header?.classList.add('active');
+
+        header?.setAttribute('aria-expanded','true');
+
     }else{
 
         body.classList.remove('open');
 
         toggle.classList.remove('open');
+
+        header?.classList.remove('active');
+
+        header?.setAttribute('aria-expanded','false');
 
     }
 
@@ -609,8 +634,6 @@ function initMap(){
     showLoading(true);
 
     map=L.map('map',{zoomControl:false,attributionControl:false,scrollWheelZoom:true,doubleClickZoom:true,touchZoom:true,dragging:true,zoomAnimation:true}).setView([9.853,122.890],18);
-
-    L.control.zoom({position:'bottomright'}).addTo(map);
 
     setTileLayer(currentTileKey,false);
 
@@ -646,6 +669,8 @@ function initMap(){
 
     map.on('click',()=>{if(document.getElementById('infoPanel').classList.contains('show'))closePanel();if(document.getElementById('directionPopup').classList.contains('show'))toggleDirectionPopup();});
 
+    map.on('move zoom viewreset moveend zoomend',()=>requestAnimationFrame(applyMapRotation));
+
 }
 
  
@@ -663,6 +688,8 @@ function setupSearch(){
     document.addEventListener('click',e=>{if(!e.target.closest('.search-bar'))s.classList.remove('show');});
 
     document.addEventListener('click',e=>{if(!e.target.closest('.tile-switcher'))document.getElementById('tileMenu')?.classList.remove('show');});
+
+    document.addEventListener('click',e=>{if(legendOpen&&!e.target.closest('.legend-container'))toggleLegend();});
 
 }
 
@@ -918,6 +945,60 @@ function bearingBetween(lat1,lng1,lat2,lng2){
 
 }
 
+function enableRouteUpMode(){
+
+    routeUpMode=true;
+
+    document.getElementById('map')?.classList.add('route-up');
+
+    applyMapRotation();
+
+}
+
+function disableRouteUpMode(){
+
+    routeUpMode=false;
+
+    setMapRotation(0);
+
+    document.getElementById('map')?.classList.remove('route-up');
+
+}
+
+function setMapRotation(deg){
+
+    mapRotation=((deg%360)+360)%360;
+
+    applyMapRotation();
+
+}
+
+function applyMapRotation(){
+
+    if(!map)return;
+
+    const pane=map.getPane('mapPane');
+
+    if(!pane)return;
+
+    const base=(pane.style.transform||'').replace(/\s*rotate\([-0-9.]+deg\)/g,'');
+
+    pane.style.transform=routeUpMode?`${base} rotate(${-mapRotation}deg)`:base;
+
+}
+
+function rotateMapToward(lat,lng,nextLat,nextLng){
+
+    if(!routeUpMode)return;
+
+    const target=bearingBetween(lat,lng,nextLat,nextLng);
+
+    const diff=((((target-mapRotation)%360)+540)%360)-180;
+
+    setMapRotation(mapRotation+diff*0.35);
+
+}
+
 function updateGpsAccuracy(acc){
 
     const chip=document.getElementById('gpsAccuracy'),text=document.getElementById('gpsAccuracyText');
@@ -930,7 +1011,7 @@ function updateGpsAccuracy(acc){
 
     chip.className=`gps-accuracy show ${level}`;
 
-    text.textContent=`GPS ±${Math.round(acc)}m`;
+    text.textContent=`GPS +/-${Math.round(acc)}m`;
 
 }
 
@@ -952,13 +1033,29 @@ function smoothPosition(pos){
 
     const next={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,heading:getPositionHeading(pos),timestamp:pos.timestamp};
 
-    if(!lastGoodPosition){lastGoodPosition=next;return next;}
+    if(!lastGoodPosition){lastGoodPosition=next;lastAcceptedFixTime=Date.now();return next;}
 
     const jump=calcDist(lastGoodPosition.lat,lastGoodPosition.lng,next.lat,next.lng);
 
-    const alpha=jump>25?0.8:0.35;
+    const mode=getTravelConfig();
+
+    const elapsed=Math.max(1,(Date.now()-lastAcceptedFixTime)/1000);
+
+    const maxReasonableJump=Math.max(mode.recalcDist*2,mode.speed/60*elapsed*2.5+Math.max(next.accuracy||0,lastGoodPosition.accuracy||0));
+
+    if(jump>maxReasonableJump&&next.accuracy>GPS_GOOD_ACCURACY)return lastGoodPosition;
+
+    if(jump<Math.max(1.5,(next.accuracy||0)*0.08))return {...lastGoodPosition,accuracy:next.accuracy,heading:next.heading,timestamp:next.timestamp};
+
+    const accuracyFactor=Number.isFinite(next.accuracy)?Math.max(0.18,Math.min(0.75,GPS_GOOD_ACCURACY/next.accuracy)):0.35;
+
+    const modeFactor=travelMode==='motorcycle'?0.62:0.42;
+
+    const alpha=jump>mode.recalcDist?0.8:Math.min(modeFactor,accuracyFactor);
 
     lastGoodPosition={...next,lat:lastGoodPosition.lat+(next.lat-lastGoodPosition.lat)*alpha,lng:lastGoodPosition.lng+(next.lng-lastGoodPosition.lng)*alpha};
+
+    lastAcceptedFixTime=Date.now();
 
     return lastGoodPosition;
 
@@ -967,6 +1064,8 @@ function smoothPosition(pos){
 function focusUserLocation(lat,lng,zoom=19){
 
     map.setView([lat,lng],zoom,{animate:true,duration:0.45});
+
+    requestAnimationFrame(applyMapRotation);
 
 }
 
@@ -1019,6 +1118,10 @@ async function navigateToOffice(){
         calculateAndDrawRoute(loc.lat,loc.lng,selectedOffice.lat,selectedOffice.lng);
 
         isNavigating=true;
+
+        enableRouteUpMode();
+
+        if(currentRoutePoints.length>1)rotateMapToward(loc.lat,loc.lng,currentRoutePoints[1][0],currentRoutePoints[1][1]);
 
         focusUserLocation(loc.lat,loc.lng);
 
@@ -1118,7 +1221,7 @@ function calculateAndDrawRoute(sl,sn,el,en,recalc=false){
 
         focusUserLocation(sl,sn);
 
-        showToast(`Route: ${Math.round(td)}m - north up`, 'success');
+        showToast(`Route: ${Math.round(td)}m - route up`, 'success');
 
     }
 
@@ -1186,7 +1289,13 @@ function startRealtimeWalking(){
 
             if(!isFreshAccuratePosition(pos,true)){
 
-                showToast('Waiting for a stronger GPS signal','info');
+                if(Date.now()-lastWeakGpsToast>8000){
+
+                    lastWeakGpsToast=Date.now();
+
+                    showToast('Waiting for a stronger GPS signal','info');
+
+                }
 
                 return;
 
@@ -1316,6 +1425,8 @@ function updateRouteProgress(lat,lng){
 
     const nextIdx=Math.min(closestIdx+1,currentRoutePoints.length-1);
 
+    if(nextIdx>closestIdx)rotateMapToward(lat,lng,currentRoutePoints[nextIdx][0],currentRoutePoints[nextIdx][1]);
+
     if(nextIdx>0){
 
         walkToPathLine=L.polyline([
@@ -1388,6 +1499,8 @@ async function centerToUser(){try{showToast('Getting best GPS fix...','info');co
 
 function stopNavigation(){
 
+    disableRouteUpMode();
+
     stopRealtimeWalking();
 
     clearRoutes();
@@ -1426,6 +1539,8 @@ function resetMap(){
 
     lastGoodPosition=null;
 
+    lastAcceptedFixTime=0;
+
     map.setView([9.853,122.890],18);
 
     document.getElementById('searchInput').value='';
@@ -1437,6 +1552,8 @@ function resetMap(){
     document.getElementById('gpsAccuracy')?.classList.remove('show');
 
     document.getElementById('tileMenu')?.classList.remove('show');
+
+    disableRouteUpMode();
 
 }
 
