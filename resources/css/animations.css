@@ -1,0 +1,599 @@
+/**
+ * Enhanced Animations for Google Maps Style Navigation UI
+ * Premium animations for walking indicator, route drawing, and interactions
+ */
+
+/* ============================================
+   WALKING MARKER ANIMATIONS
+   ============================================ */
+
+/* Main Walking Figure */
+@keyframes walkingFigure {
+    0%, 100% {
+        transform: translateY(0) scaleX(1);
+    }
+    25% {
+        transform: translateY(-2px) scaleX(1.02);
+    }
+    50% {
+        transform: translateY(0) scaleX(1);
+    }
+    75% {
+        transform: translateY(-1px) scaleX(0.98);
+    }
+}
+
+/* Left Leg Movement */
+@keyframes legLeft {
+    0%, 100% {
+        transform: rotate(0deg) translateY(0);
+    }
+    25% {
+        transform: rotate(-25deg) translateY(-1px);
+    }
+    50% {
+        transform: rotate(0deg) translateY(0);
+    }
+    75% {
+        transform: rotate(15deg) translateY(1px);
+    }
+}
+
+/* Right Leg Movement */
+@keyframes legRight {
+    0%, 100% {
+        transform: rotate(0deg) translateY(0);
+    }
+    25% {
+        transform: rotate(15deg) translateY(1px);
+    }
+    50% {
+        transform: rotate(0deg) translateY(0);
+    }
+    75% {
+        transform: rotate(-25deg) translateY(-1px);
+    }
+}
+
+/* Walking Direction Indicator */
+@keyframes walkingDirection {
+    0%, 100% {
+        opacity: 0.6;
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.1);
+    }
+}
+
+/* ============================================
+   ROUTE DRAWING ANIMATIONS
+   ============================================ */
+
+/* SVG Path Animation */
+@keyframes drawPath {
+    0% {
+        stroke-dashoffset: 1000;
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
+}
+
+/* Path Glow Effect */
+@keyframes pathGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+    }
+    50% {
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+    }
+}
+
+/* Route Point Pulse */
+@keyframes routePointPulse {
+    0%, 100% {
+        r: 4px;
+        opacity: 1;
+    }
+    50% {
+        r: 6px;
+        opacity: 0.6;
+    }
+}
+
+/* ============================================
+   BOTTOM SHEET ANIMATIONS
+   ============================================ */
+
+/* Sheet Slide and Bounce */
+@keyframes sheetBounceIn {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    60% {
+        transform: translateY(-20px);
+        opacity: 1;
+    }
+    80% {
+        transform: translateY(10px);
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Handle Wiggle */
+@keyframes handleWiggle {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-2px);
+    }
+    75% {
+        transform: translateX(2px);
+    }
+}
+
+/* ============================================
+   BUTTON ANIMATIONS
+   ============================================ */
+
+/* FAB Press Effect */
+@keyframes fabPress {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+        transform: scale(0.92);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* Ripple Effect */
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* ============================================
+   STATUS BADGE ANIMATIONS
+   ============================================ */
+
+/* Pulse Dot */
+@keyframes pulseDot {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+/* Status Text Float */
+@keyframes statusFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+/* ============================================
+   SEARCH ANIMATIONS
+   ============================================ */
+
+/* Search Input Focus */
+@keyframes searchFocus {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* Clear Button Spin */
+@keyframes clearSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   NAVIGATION STEP ANIMATIONS
+   ============================================ */
+
+/* Step Slide In */
+@keyframes stepSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Step Complete Check */
+@keyframes stepCheck {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Number Counter */
+@keyframes numberCount {
+    0% {
+        content: '0';
+    }
+    100% {
+        content: attr(data-step);
+    }
+}
+
+/* ============================================
+   PROGRESS BAR ANIMATIONS
+   ============================================ */
+
+/* Progress Fill */
+@keyframes progressFill {
+    0% {
+        width: 0%;
+    }
+}
+
+/* Progress Shimmer */
+@keyframes progressShimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+/* ============================================
+   MARKER ANIMATIONS
+   ============================================ */
+
+/* Marker Bounce */
+@keyframes markerBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-10px) scale(1.05);
+    }
+}
+
+/* Marker Glow */
+@keyframes markerGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 0px rgba(59, 130, 246, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+    }
+}
+
+/* Accuracy Circle Pulse */
+@keyframes accuracyPulse {
+    0% {
+        r: 0;
+        opacity: 1;
+    }
+    100% {
+        r: 100px;
+        opacity: 0;
+    }
+}
+
+/* ============================================
+   LOADING ANIMATIONS
+   ============================================ */
+
+/* Spinner with Trail */
+@keyframes spinnerTrail {
+    0% {
+        stroke-dashoffset: 0;
+        opacity: 0;
+    }
+    25% {
+        opacity: 1;
+    }
+    75% {
+        opacity: 1;
+    }
+    100% {
+        stroke-dashoffset: 450;
+        opacity: 0;
+    }
+}
+
+/* Loading Pulse */
+@keyframes loadingPulse {
+    0% {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    50% {
+        background-color: rgba(59, 130, 246, 0.3);
+    }
+    100% {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+}
+
+/* ============================================
+   TRANSITION ANIMATIONS
+   ============================================ */
+
+/* Smooth Fade */
+@keyframes smoothFade {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Smooth Scale */
+@keyframes smoothScale {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Smooth Slide Up */
+@keyframes smoothSlideUp {
+    0% {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   HAPTIC-LIKE FEEDBACK
+   ============================================ */
+
+/* Tap Feedback */
+@keyframes tapFeedback {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+/* Success Checkmark */
+@keyframes successCheckmark {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(-45deg);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+/* ============================================
+   ADVANCED PARTICLE EFFECTS
+   ============================================ */
+
+/* Particle Float */
+@keyframes particleFloat {
+    0% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-30px) translateX(10px) scale(0);
+    }
+}
+
+/* Particle Fade Out */
+@keyframes particleFade {
+    0% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* ============================================
+   CUSTOM SCROLL ANIMATIONS
+   ============================================ */
+
+/* Scroll Momentum */
+@keyframes scrollMomentum {
+    0% {
+        transform: translateY(-5px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   UTILITY ANIMATION CLASSES
+   ============================================ */
+
+.animate-walking {
+    animation: walkingFigure 0.8s ease-in-out infinite;
+}
+
+.animate-leg-left {
+    animation: legLeft 0.8s ease-in-out infinite;
+}
+
+.animate-leg-right {
+    animation: legRight 0.8s ease-in-out infinite;
+}
+
+.animate-draw-path {
+    animation: drawPath 2s ease-in-out forwards;
+}
+
+.animate-path-glow {
+    animation: pathGlow 2s ease-in-out infinite;
+}
+
+.animate-fab-press {
+    animation: fabPress 0.3s ease-out;
+}
+
+.animate-ripple {
+    animation: ripple 0.6s ease-out;
+}
+
+.animate-pulse-dot {
+    animation: pulseDot 1.5s ease-in-out infinite;
+}
+
+.animate-status-float {
+    animation: statusFloat 1s ease-in-out infinite;
+}
+
+.animate-sheet-bounce {
+    animation: sheetBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-step-slide {
+    animation: stepSlideIn 0.4s ease-out;
+}
+
+.animate-marker-bounce {
+    animation: markerBounce 0.6s ease-in-out;
+}
+
+.animate-marker-glow {
+    animation: markerGlow 1.5s ease-in-out infinite;
+}
+
+.animate-success-check {
+    animation: successCheckmark 0.5s ease-out;
+}
+
+/* ============================================
+   RESPONSIVE ANIMATION ADJUSTMENTS
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Faster animations on mobile for better perceived performance */
+    .animate-sheet-bounce {
+        animation: sheetBounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .animate-step-slide {
+        animation: stepSlideIn 0.3s ease-out;
+    }
+
+    .animate-walking {
+        animation: walkingFigure 0.6s ease-in-out infinite;
+    }
+}
+
+/* ============================================
+   GPU ACCELERATION
+   ============================================ */
+
+.will-animate {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.animate-walking,
+.animate-marker-bounce,
+.animate-fab-press {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* ============================================
+   EASING FUNCTIONS
+   ============================================ */
+
+/* Material Design Easing */
+.ease-standard {
+    animation-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.ease-decelerate {
+    animation-timing-function: cubic-bezier(0.0, 0.0, 0.2, 1);
+}
+
+.ease-accelerate {
+    animation-timing-function: cubic-bezier(0.4, 0.0, 1, 1);
+}
+
+.ease-sharp {
+    animation-timing-function: cubic-bezier(0.4, 0.0, 0.6, 1);
+}

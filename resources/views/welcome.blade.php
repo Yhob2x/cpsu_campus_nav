@@ -6,1057 +6,369 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>CPSU Map Navigator - Live GPS Navigation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#0f172a">
+    <title>CPSU Map Navigator</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        :root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+        html,body{width:100%;height:100%;overflow:hidden;position:fixed;top:0;left:0;font-family:'Inter',sans-serif;background:#000}
+        #map{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
+
+        .header{position:fixed;top:0;left:0;right:0;z-index:50;padding:8px 10px;padding-top:calc(8px + var(--sat));display:flex;align-items:center;gap:8px;pointer-events:none}
+        .header>*{pointer-events:auto}
+        .header-brand{display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.88);backdrop-filter:blur(16px);padding:6px 12px;border-radius:22px;border:1px solid rgba(255,255,255,0.1)}
+        .header-logo{font-size:1.1rem}.header-title{color:white;font-weight:700;font-size:0.8rem;white-space:nowrap}.header-spacer{flex:1}
+        .live-badge{display:none;align-items:center;gap:5px;background:rgba(16,185,129,0.25);color:#6ee7b7;padding:5px 12px;border-radius:18px;font-size:0.65rem;font-weight:700;border:1px solid rgba(16,185,129,0.3);animation:livePulse 2s infinite}
+        .live-badge.show{display:flex}.live-dot{width:6px;height:6px;background:#10b981;border-radius:50%;animation:dotPulse 1.5s infinite}
+        @keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.4)}50%{box-shadow:0 0 0 8px rgba(16,185,129,0)}}@keyframes dotPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:0.4}}
+        .header-btns{display:flex;gap:5px}
+        .icon-btn{width:32px;height:32px;border-radius:50%;background:rgba(15,23,42,0.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;transition:all 0.15s;text-decoration:none}
+        .icon-btn:active{transform:scale(0.9);background:rgba(255,255,255,0.2)}
+
+        .search-bar{position:fixed;top:calc(52px + var(--sat));left:50%;transform:translateX(-50%);z-index:45;pointer-events:none;width:calc(100% - 24px);max-width:420px}
+        .search-bar>*{pointer-events:auto}
+        .search-wrapper{position:relative;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.5)}
+        #searchInput{width:100%;padding:10px 40px;border:none;border-radius:24px;font-size:0.85rem;background:transparent;font-weight:500;color:#0f172a;outline:none}
+        #searchInput::placeholder{color:#94a3b8;font-size:0.8rem}
+        .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:0.85rem}
+        .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;padding:6px;cursor:pointer;display:none;font-size:0.8rem}
+        .search-clear.visible{display:block}
+        .search-suggestions{position:absolute;top:46px;left:0;right:0;background:white;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,0.15);max-height:200px;overflow-y:auto;display:none}
+        .search-suggestions.show{display:block}
+        .suggestion-item{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;transition:background 0.1s}
+        .suggestion-item:last-child{border-bottom:none}.suggestion-item:active{background:#f8fafc}
+        .suggestion-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}.suggestion-info{flex:1;min-width:0}
+        .suggestion-name{font-weight:600;color:#0f172a;font-size:0.8rem}.suggestion-detail{font-size:0.7rem;color:#64748b}
+
+        .bottom-controls{position:fixed;bottom:16px;bottom:calc(16px + var(--sab));left:50%;transform:translateX(-50%);z-index:45;display:flex;gap:6px;pointer-events:none}
+        .bottom-controls>*{pointer-events:auto}
+        .pill-btn{padding:8px 14px;border-radius:20px;border:none;font-weight:600;font-size:0.75rem;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all 0.15s;backdrop-filter:blur(16px);box-shadow:0 3px 12px rgba(0,0,0,0.12)}
+        .pill-btn:active{transform:scale(0.95)}.pill-primary{background:#10b981;color:white}.pill-secondary{background:rgba(255,255,255,0.92);color:#3b82f6;border:1px solid rgba(255,255,255,0.5)}.pill-neutral{background:rgba(255,255,255,0.92);color:#475569;border:1px solid rgba(255,255,255,0.5)}
+
+        .legend-bar{position:fixed;bottom:68px;bottom:calc(68px + var(--sab));left:12px;right:12px;z-index:44;pointer-events:none;display:flex;justify-content:center}
+        .legend-scroll{pointer-events:auto;display:flex;gap:5px;overflow-x:auto;padding:5px 10px;background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,0.08);max-width:100%;-webkit-overflow-scrolling:touch}
+        .legend-item{display:flex;align-items:center;gap:4px;font-size:0.6rem;font-weight:600;color:#475569;white-space:nowrap;padding:3px 7px;border-radius:10px;background:#f8fafc;flex-shrink:0}
+        .legend-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+        .gps-btn{position:fixed;bottom:120px;bottom:calc(120px + var(--sab));right:14px;width:44px;height:44px;border-radius:50%;background:white;box-shadow:0 4px 16px rgba(0,0,0,0.18);cursor:pointer;z-index:44;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#64748b;border:2px solid #e2e8f0;transition:all 0.3s}
+        .gps-btn:active{transform:scale(0.9)}.gps-btn.active{background:#10b981;color:white;border-color:#10b981;animation:gpsPulse 2s infinite}
+        @keyframes gpsPulse{0%,100%{box-shadow:0 4px 16px rgba(16,185,129,0.4)}50%{box-shadow:0 4px 24px rgba(16,185,129,0.7)}}
+
+        .nav-eta-bar{position:fixed;top:calc(100px + var(--sat));left:50%;transform:translateX(-50%);z-index:46;width:calc(100% - 24px);max-width:420px;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-radius:18px;padding:10px 14px;box-shadow:0 4px 20px rgba(0,0,0,0.12);display:none;align-items:center;gap:10px;border-left:3px solid #10b981;transition:all 0.3s ease}
+        .nav-eta-bar.show{display:flex}.nav-eta-bar.hide{display:none!important;opacity:0;transform:translateX(-50%) translateY(-10px)}
+        .nav-eta-icon{width:32px;height:32px;border-radius:50%;background:#f0fdf4;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:0.9rem;flex-shrink:0}
+        .nav-eta-info{flex:1;min-width:0}.nav-eta-dest{font-weight:700;font-size:0.8rem;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-eta-time{font-size:0.7rem;color:#64748b}
+        .nav-eta-toggle{width:30px;height:30px;border-radius:50%;background:#f0fdf4;border:none;color:#10b981;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;transition:all 0.2s ease}
+        .nav-eta-toggle:active{background:#dcfce7;transform:scale(0.9)}
+        .nav-eta-close{width:30px;height:30px;border-radius:50%;background:#fee2e2;border:none;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;transition:all 0.2s ease}
+        .nav-eta-close:active{background:#fecaca;transform:scale(0.9)}
+
+        .direction-popup{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:40vh;display:flex;flex-direction:column}
+        .direction-popup.show{transform:translateY(0)}.direction-handle{padding:10px 0;text-align:center;flex-shrink:0}.direction-handle-bar{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto}
+        .direction-content{padding:0 16px 16px;overflow-y:auto;flex:1;padding-bottom:calc(16px + var(--sab))}
+        .direction-step{padding:8px 0;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;color:#475569}.direction-step:last-child{border-bottom:none}.direction-step-icon{width:18px;text-align:center;flex-shrink:0;font-size:0.75rem}
+
+        .info-panel{position:fixed;bottom:0;left:0;right:0;background:white;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:200;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:42vh;overflow-y:auto;padding:16px;padding-bottom:calc(16px + var(--sab))}
+        .info-panel.show{transform:translateY(0)}.panel-handle{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 12px}
+        .panel-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}.panel-title{font-weight:700;font-size:0.95rem;color:#0f172a}
+        .panel-close{background:#f1f5f9;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.85rem;color:#64748b;display:flex;align-items:center;justify-content:center}.panel-close:active{background:#fee2e2;color:#ef4444}
+        .info-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:8px;margin-bottom:6px;font-size:0.8rem;color:#475569}
+        .info-badge{display:inline-block;background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:10px;font-size:0.65rem;font-weight:700}
+        .nav-btn{width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-top:10px;transition:all 0.15s}.nav-btn:active{background:#1d4ed8;transform:scale(0.98)}
+
+        .user-marker{width:16px;height:16px;background:#10b981;border-radius:50%;border:3px solid white;box-shadow:0 0 0 3px rgba(16,185,129,0.3);animation:userPulse 2s infinite}
+        @keyframes userPulse{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,0.3)}50%{box-shadow:0 0 0 10px rgba(16,185,129,0.06)}}
+        .dest-marker{width:20px;height:20px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
         
-        body {
-            overflow-x: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-        
-        #map { 
-            height: calc(100vh - 130px); 
-            width: 100%;
-            border-radius: 0;
-            z-index: 1;
-        }
-        
-        @media (max-width: 640px) {
-            .info-panel {
-                bottom: 10px;
-                right: 10px;
-                left: 10px;
-                max-width: none;
-                width: auto;
-                max-height: 50vh;
-                overflow-y: auto;
-                font-size: 14px;
-            }
-            
-            .nav-instructions {
-                bottom: 10px;
-                left: 10px;
-                right: 10px;
-                max-width: none;
-                width: auto;
-                max-height: 45vh;
-                overflow-y: auto;
-            }
-            
-            button {
-                min-height: 44px;
-                min-width: 44px;
-            }
-            
-            .custom-marker {
-                width: 24px !important;
-                height: 24px !important;
-            }
-            
-            .legend {
-                gap: 8px;
-                overflow-x: auto;
-                white-space: nowrap;
-                flex-wrap: nowrap;
-                padding-bottom: 4px;
-            }
-            
-            .legend-item {
-                flex-shrink: 0;
-            }
-            
-            .gps-indicator {
-                bottom: 90px;
-                right: 10px;
-                top: auto;
-            }
-        }
-        
-        @media (min-width: 641px) {
-            #map {
-                height: 65vh;
-                border-radius: 12px;
-            }
-            
-            .info-panel {
-                max-width: 320px;
-                left: auto;
-            }
-            
-            .nav-instructions {
-                max-width: 380px;
-            }
-            
-            .gps-indicator {
-                top: 20px;
-                right: 20px;
-            }
-        }
-        
-        .info-panel {
-            position: fixed;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            padding: 15px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            display: none;
-            border-left: 4px solid #3b82f6;
-            z-index: 1000;
-        }
-        
-        .info-panel.show { display: block; animation: slideIn 0.3s ease; }
-        
-        @keyframes slideIn {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .custom-marker { cursor: pointer; transition: transform 0.2s; }
-        
-        .loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2000;
-            background: white;
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
-        
-        .nav-instructions {
-            position: fixed;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            display: none;
-            z-index: 1000;
-        }
-        
-        .nav-instructions.show { display: block; animation: slideUp 0.3s ease; }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes dash {
-            to { stroke-dashoffset: -20; }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.7; }
-        }
-        
-        @keyframes ripples {
-            0% { transform: scale(1); opacity: 0.5; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
-        
-        .route-shortest { 
-            stroke: #22c55e; 
-            stroke-dasharray: 10, 10; 
-            animation: dash 1s linear infinite; 
-        }
-        
-        .user-location-marker {
-            background: #22c55e;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            border: 3px solid white;
-            box-shadow: 0 0 10px rgba(34,197,94,0.5);
-            animation: pulse 2s ease infinite;
-        }
-        
-        .user-location-marker::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: #22c55e;
-            transform: translate(-50%, -50%);
-            animation: ripples 2s ease-out infinite;
-        }
-        
-        .accuracy-circle {
-            background: rgba(34, 197, 94, 0.15);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-        
-        .touch-btn {
-            touch-action: manipulation;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .touch-btn:active {
-            transform: scale(0.96);
-        }
-        
-        .gps-indicator {
-            position: fixed;
-            background: white;
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            cursor: pointer;
-            z-index: 1000;
-            transition: all 0.2s;
-        }
-        
-        .gps-indicator.active {
-            background: #22c55e;
-            color: white;
-        }
-        
-        .gps-indicator:active {
-            transform: scale(0.9);
-        }
-        
-        .live-track-badge {
-            background: #22c55e;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-left: 8px;
-            animation: pulse 1s ease infinite;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-            .info-panel, .nav-instructions {
-                margin-bottom: env(safe-area-inset-bottom);
-            }
-        }
+        /* Real-time walking marker */
+        .walking-live-marker{width:24px;height:24px;background:#f59e0b;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3);animation:walkBounce 0.6s ease-in-out infinite, walkPulse 1.5s ease-in-out infinite}
+        @keyframes walkBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes walkPulse{0%,100%{box-shadow:0 0 0 6px rgba(245,158,11,0.3), 0 4px 12px rgba(0,0,0,0.3)}50%{box-shadow:0 0 0 12px rgba(245,158,11,0.1), 0 4px 12px rgba(0,0,0,0.3)}}
+
+        .toast{position:fixed;bottom:140px;left:16px;right:16px;padding:12px 14px;background:white;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.18);font-size:0.8rem;font-weight:500;z-index:250;display:flex;align-items:center;gap:8px}
+        .toast-success{border-left:3px solid #10b981;color:#166534}.toast-error{border-left:3px solid #ef4444;color:#991b1b}.toast-info{border-left:3px solid #06b6d4;color:#0c4a6e}
+        .hidden{display:none!important}
+        .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300}
+        .loading-card{background:white;padding:28px;border-radius:18px;text-align:center}
+        .spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}
+
+        @media(min-width:768px){.search-bar{left:20px;transform:none;max-width:360px}.nav-eta-bar{left:20px;transform:none;max-width:360px}.bottom-controls{left:20px;transform:none}.legend-bar{left:20px;right:auto;justify-content:flex-start}.info-panel{left:20px;right:auto;width:360px;border-radius:18px;bottom:20px;transform:translateY(calc(100% + 20px))}.info-panel.show{transform:translateY(0)}.direction-popup{left:20px;right:auto;width:360px;border-radius:18px;bottom:20px;transform:translateY(calc(100% + 20px))}.direction-popup.show{transform:translateY(0)}}
     </style>
 </head>
-<body class="bg-gray-100">
-    <!-- Mobile Navigation Bar -->
-    <nav class="bg-white shadow-lg sticky top-0 z-50">
-        <div class="px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center">
-                <span class="text-2xl mr-2">🗺️</span>
-                <h1 class="text-lg font-bold text-gray-800">CPSU Navigator</h1>
-                <span id="liveBadge" class="live-track-badge hidden" style="background: #22c55e;">
-                    <i class="fas fa-satellite-dish mr-1"></i> LIVE
-                </span>
-            </div>
-            <div class="flex items-center space-x-3">
-                <a href="{{ url('/directory') }}" class="text-gray-600 hover:text-blue-600 text-sm">
-                    <i class="fas fa-list"></i>
-                </a>
-                <a href="{{ url('/login') }}" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm">Admin</a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Search and Controls -->
-    <div class="sticky top-0 z-40 bg-white shadow-md px-3 py-2">
-        <div class="flex flex-col gap-2">
-            <div class="relative">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-                <input type="text" id="searchInput" placeholder="Search for offices..." 
-                       class="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-            </div>
-            <div class="flex gap-2">
-                <button onclick="centerToUser()" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm touch-btn">
-                    <i class="fas fa-location-dot mr-1"></i> My Location
-                </button>
-                <button onclick="findNearestOffice()" class="flex-1 bg-purple-600 text-white py-2.5 rounded-lg text-sm touch-btn">
-                    <i class="fas fa-building mr-1"></i> Nearest
-                </button>
-                <button onclick="resetMap()" class="flex-1 bg-gray-600 text-white py-2.5 rounded-lg text-sm touch-btn">
-                    <i class="fas fa-home mr-1"></i> Reset
-                </button>
-            </div>
-            
-            <div class="legend flex gap-3 pt-1 pb-1 overflow-x-auto">
-                <div class="legend-item flex items-center"><div class="w-2.5 h-2.5 bg-red-500 rounded-full mr-1"></div><span class="text-xs">Admin</span></div>
-                <div class="legend-item flex items-center"><div class="w-2.5 h-2.5 bg-blue-500 rounded-full mr-1"></div><span class="text-xs">Academic</span></div>
-                <div class="legend-item flex items-center"><div class="w-2.5 h-2.5 bg-green-500 rounded-full mr-1"></div><span class="text-xs">Facility</span></div>
-                <div class="legend-item flex items-center"><i class="fas fa-road text-blue-500 mr-1 text-xs"></i><span class="text-xs">Footwalk</span></div>
-                <div class="legend-item flex items-center"><i class="fas fa-route text-green-500 mr-1 text-xs"></i><span class="text-xs">Your Path</span></div>
-                <div class="legend-item flex items-center"><div class="w-1.5 h-1.5 bg-orange-500 rounded-full mr-1"></div><span class="text-xs">Connection</span></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Map Container -->
+<body>
     <div id="map"></div>
-    
-    <!-- GPS Live Tracking Indicator -->
-    <div id="gpsIndicator" class="gps-indicator" onclick="toggleLiveTracking()">
-        <i class="fas fa-location-arrow text-lg"></i>
-    </div>
-    
-    <!-- Info Panel -->
-    <div id="infoPanel" class="info-panel">
-        <div class="flex justify-between items-start mb-2">
-            <h3 id="officeName" class="font-bold text-base text-gray-800 flex-1 pr-2"></h3>
-            <button onclick="closePanel()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-        </div>
-        <div id="officeDetails" class="text-sm text-gray-600 space-y-1"></div>
-        <button onclick="navigateToOffice()" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm mt-3 touch-btn">
-            <i class="fas fa-directions mr-1"></i> Navigate to this Office
-        </button>
-    </div>
-    
-    <!-- Navigation Instructions -->
-    <div id="navInstructions" class="nav-instructions">
-        <div class="p-3">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center">
-                    <i class="fas fa-walking text-blue-500 text-lg mr-2"></i>
-                    <span class="font-semibold text-sm">Walking Directions</span>
-                </div>
-                <button onclick="stopNavigation()" class="text-red-500 hover:text-red-700 p-1 touch-btn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div id="navDistance" class="text-xs text-gray-600 mb-2"></div>
-            <div id="navStepsList" class="text-xs text-gray-500 space-y-1 max-h-32 overflow-y-auto"></div>
-            <div id="remainingDistance" class="text-xs bg-blue-50 p-2 rounded mt-2 hidden">
-                <i class="fas fa-route mr-1 text-blue-500"></i> <span id="remainingDistValue">Calculating...</span>
-            </div>
+
+    <div class="header">
+        <div class="header-brand"><span class="header-logo">🗺️</span><span class="header-title">CPSU Navigator</span></div>
+        <div class="header-spacer"></div>
+        <div class="live-badge" id="liveBadge"><div class="live-dot"></div>LIVE</div>
+        <div class="header-btns">
+            <a href="{{ url('/directory') }}" class="icon-btn"><i class="fas fa-list"></i></a>
+            <a href="{{ url('/login') }}" class="icon-btn"><i class="fas fa-user-shield"></i></a>
         </div>
     </div>
 
-    <script>
-        let map;
-        let markers = {};
-        let officesData = [];
-        let footwalkPaths = [];
-        let pathGraph = {};
-        let currentRoute = null;
-        let userMarker = null;
-        let userAccuracyCircle = null;
-        let selectedOffice = null;
-        let connectionPoints = [];
-        let graphBuilt = false;
-        let isTracking = false;
-        let watchId = null;
-        let currentRoutePoints = [];
-        let remainingDistanceElem = document.getElementById('remainingDistance');
-        let remainingDistValue = document.getElementById('remainingDistValue');
-        
-        // Live tracking variables
-        let lastUserPosition = null;
-        let routeRecalculationCount = 0;
-        
-        function initMap() {
-            showLoading(true);
-            const isMobile = window.innerWidth <= 640;
-            document.getElementById('map').style.height = isMobile ? 'calc(100vh - 130px)' : '65vh';
+    <div class="search-bar">
+        <div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" id="searchInput" placeholder="Search offices..." autocomplete="off"><button class="search-clear" id="searchClear" onclick="clearSearch()"><i class="fas fa-times-circle"></i></button></div>
+        <div class="search-suggestions" id="searchSuggestions"></div>
+    </div>
+
+    <div class="nav-eta-bar" id="navEtaBar">
+        <div class="nav-eta-icon"><i class="fas fa-walking"></i></div>
+        <div class="nav-eta-info"><div class="nav-eta-dest" id="navEtaDest">-</div><div class="nav-eta-time" id="navEtaTime">Calculating...</div></div>
+        <button class="nav-eta-toggle" onclick="toggleDirectionPopup()" title="Directions"><i class="fas fa-chevron-up"></i></button>
+        <button class="nav-eta-close" onclick="stopNavigation()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="direction-popup" id="directionPopup">
+        <div class="direction-handle" onclick="toggleDirectionPopup()"><div class="direction-handle-bar"></div></div>
+        <div class="direction-content" id="directionContent"></div>
+    </div>
+
+    <div class="bottom-controls">
+        <button onclick="centerToUser()" class="pill-btn pill-primary"><i class="fas fa-location-dot"></i> My Location</button>
+        <button onclick="findNearestOffice()" class="pill-btn pill-secondary"><i class="fas fa-building"></i> Nearest</button>
+        <button onclick="resetMap()" class="pill-btn pill-neutral"><i class="fas fa-home"></i> Reset</button>
+    </div>
+
+    <div class="legend-bar"><div class="legend-scroll">
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div>Admin</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>Academic</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div>Facility</div>
+        <div class="legend-item"><i class="fas fa-road" style="color:#3b82f6;font-size:0.55rem;"></i>Footwalk</div>
+        <div class="legend-item"><i class="fas fa-route" style="color:#10b981;font-size:0.55rem;"></i>Route</div>
+        <div class="legend-item"><i class="fas fa-arrow-right" style="color:#ef4444;font-size:0.55rem;"></i>Walk</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div>Link</div>
+    </div></div>
+
+    <div class="gps-btn" id="gpsBtn" onclick="toggleLiveTracking()"><i class="fas fa-location-arrow"></i></div>
+
+    <div class="info-panel" id="infoPanel">
+        <div class="panel-handle"></div>
+        <div class="panel-header"><h3 class="panel-title" id="officeName"></h3><button class="panel-close" onclick="closePanel()"><i class="fas fa-times"></i></button></div>
+        <div id="officeDetails"></div>
+        <button class="nav-btn" onclick="navigateToOffice()"><i class="fas fa-directions mr-2"></i> Navigate Here</button>
+    </div>
+
+    <div class="loading-overlay hidden" id="loadingOverlay"><div class="loading-card"><div class="spinner"></div><p style="color:#475569;font-weight:600;">Loading map...</p></div></div>
+
+<script>
+let map,markers={},officesData=[],footwalkPaths=[],pathGraph={};
+let currentRoute=null,userMarker=null,userAccuracyCircle=null,destMarker=null;
+let selectedOffice=null,connectionPoints=[],graphBuilt=false;
+let isTracking=false,watchId=null,currentRoutePoints=[];
+let lastUserPosition=null,walkToPathLine=null,walkFromPathLine=null;
+let directionSteps=[],isNavigating=false;
+let realtimeWalkingWatchId=null;
+
+function initMap(){
+    showLoading(true);
+    map=L.map('map',{zoomControl:false,attributionControl:false,scrollWheelZoom:true,doubleClickZoom:true,touchZoom:true,dragging:true}).setView([9.853,122.890],18);
+    L.control.zoom({position:'bottomright'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,detectRetina:true}).addTo(map);
+    loadOffices();loadFootwalks();setupSearch();
+    window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(()=>map.invalidateSize(),150);});
+    window.addEventListener('orientationchange',()=>setTimeout(()=>map.invalidateSize(),300));
+    map.on('click',()=>{if(document.getElementById('infoPanel').classList.contains('show'))closePanel();if(document.getElementById('directionPopup').classList.contains('show'))toggleDirectionPopup();});
+}
+
+function setupSearch(){
+    const i=document.getElementById('searchInput'),c=document.getElementById('searchClear'),s=document.getElementById('searchSuggestions');
+    i.addEventListener('input',()=>{const q=i.value.trim();c.classList.toggle('visible',q.length>0);if(q.length>=2){const r=officesData.filter(o=>o.name.toLowerCase().includes(q.toLowerCase())||(o.building&&o.building.toLowerCase().includes(q.toLowerCase())));showSuggestions(r);}else s.classList.remove('show');});
+    i.addEventListener('focus',()=>{const q=i.value.trim();if(q.length>=2){const r=officesData.filter(o=>o.name.toLowerCase().includes(q.toLowerCase())||(o.building&&o.building.toLowerCase().includes(q.toLowerCase())));showSuggestions(r);}});
+    i.addEventListener('keydown',e=>{if(e.key==='Escape'){clearSearch();i.blur();}});
+    document.addEventListener('click',e=>{if(!e.target.closest('.search-bar'))s.classList.remove('show');});
+}
+function showSuggestions(r){const c=document.getElementById('searchSuggestions');c.innerHTML=r.length?r.slice(0,6).map(o=>`<div class="suggestion-item" onclick="selectOffice('${o.office_id}')"><div class="suggestion-dot" style="background:${o.category==='Administrative'?'#ef4444':o.category==='Academic'?'#3b82f6':'#10b981'};"></div><div class="suggestion-info"><div class="suggestion-name">${o.name}</div><div class="suggestion-detail">${o.building||'Main'} · Rm ${o.room_number||'N/A'}</div></div></div>`).join(''):'<div style="padding:14px;text-align:center;color:#94a3b8;">No results</div>';c.classList.add('show');}
+function clearSearch(){const i=document.getElementById('searchInput');i.value='';document.getElementById('searchClear').classList.remove('visible');document.getElementById('searchSuggestions').classList.remove('show');i.focus();}
+
+async function loadOffices(){try{const r=await fetch('/api/offices');const d=await r.json();if(d.success&&d.data&&d.data.length){officesData=d.data;d.data.forEach(o=>addMarker(o));}else loadDemoOffices();}catch(e){loadDemoOffices();}}
+function loadDemoOffices(){officesData=[{office_id:1,name:'Administration',building:'Admin Bldg',room_number:'101',lat:9.8531,lng:122.8901,category:'Administrative'},{office_id:2,name:'Engineering',building:'Engg Block',room_number:'201',lat:9.8532,lng:122.8902,category:'Academic'},{office_id:3,name:'Library',building:'Learning Center',room_number:'GF',lat:9.8533,lng:122.8903,category:'Academic'},{office_id:4,name:'Student Center',building:'Student Hub',room_number:'Main',lat:9.8534,lng:122.8904,category:'Facilities'},{office_id:5,name:'Health Services',building:'Medical Bldg',room_number:'102',lat:9.8535,lng:122.8905,category:'Services'}];officesData.forEach(o=>addMarker(o));}
+function addMarker(o){if(!o.lat||!o.lng)return;const c=o.category==='Administrative'?'#ef4444':o.category==='Academic'?'#3b82f6':'#10b981';const icon=L.divIcon({html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>`,iconSize:[14,14],className:''});const m=L.marker([o.lat,o.lng],{icon}).addTo(map);m.on('click',()=>selectOffice(o.office_id));m.bindTooltip(o.name,{direction:'top',offset:[0,-8]});markers[o.office_id]={marker:m,data:o};}
+
+async function loadFootwalks(){try{const r=await fetch('/api/footwalks');const d=await r.json();if(d.success&&d.data?.length>0){footwalkPaths=d.data.map(f=>({id:f.id,name:f.name,color:f.color||'#3b82f6',coordinates:JSON.parse(f.coordinates)}));processFootwalks();}else createDemoFootwalks();}catch(e){createDemoFootwalks();}finally{showLoading(false);}}
+function processFootwalks(){footwalkPaths.forEach(p=>drawFootwalk(p));buildPathGraph();showConnectionPoints();graphBuilt=true;showToast(`${footwalkPaths.length} paths loaded`,'success');}
+function createDemoFootwalks(){const p=[];for(let i=0;i<officesData.length-1;i++)p.push({id:i+1,name:`Path ${i+1}`,color:'#3b82f6',coordinates:[[officesData[i].lat,officesData[i].lng],[officesData[i+1].lat,officesData[i+1].lng]]});if(officesData.length>=3)p.push({id:p.length+1,name:'Cross A',color:'#3b82f6',coordinates:[[officesData[0].lat,officesData[0].lng],[officesData[2].lat,officesData[2].lng]]});if(officesData.length>=5){p.push({id:p.length+1,name:'Cross B',color:'#3b82f6',coordinates:[[officesData[1].lat,officesData[1].lng],[officesData[3].lat,officesData[3].lng]]});p.push({id:p.length+1,name:'Cross C',color:'#3b82f6',coordinates:[[officesData[2].lat,officesData[2].lng],[officesData[4].lat,officesData[4].lng]]});}footwalkPaths=p;p.forEach(p=>drawFootwalk(p));buildPathGraph();graphBuilt=true;}
+function drawFootwalk(p){try{L.polyline(p.coordinates.map(c=>[c[0],c[1]]),{color:p.color||'#3b82f6',weight:2.5,opacity:0.45,dashArray:'5,4'}).addTo(map);}catch(e){}}
+
+function buildPathGraph(){pathGraph={};let nid=0;const p2i=new Map();footwalkPaths.forEach(p=>{p.coordinates.forEach(c=>{const k=`${c[0].toFixed(7)},${c[1].toFixed(7)}`;if(!p2i.has(k)){p2i.set(k,`n${nid++}`);pathGraph[p2i.get(k)]={lat:c[0],lng:c[1],edges:[],pathName:p.name};}});});footwalkPaths.forEach(p=>{for(let i=0;i<p.coordinates.length-1;i++){const k1=`${p.coordinates[i][0].toFixed(7)},${p.coordinates[i][1].toFixed(7)}`,k2=`${p.coordinates[i+1][0].toFixed(7)},${p.coordinates[i+1][1].toFixed(7)}`,id1=p2i.get(k1),id2=p2i.get(k2);if(id1&&id2){const d=calcDist(p.coordinates[i][0],p.coordinates[i][1],p.coordinates[i+1][0],p.coordinates[i+1][1]);if(!pathGraph[id1].edges.some(e=>e.to===id2)){pathGraph[id1].edges.push({to:id2,dist:d});pathGraph[id2].edges.push({to:id1,dist:d});}}}});connectionPoints=[];const CD=20;for(let i=0;i<footwalkPaths.length;i++){for(let j=i+1;j<footwalkPaths.length;j++){const cl=findClosest(footwalkPaths[i].coordinates,footwalkPaths[j].coordinates);if(cl.distance<CD){const k1=`${cl.p1.lat.toFixed(7)},${cl.p1.lng.toFixed(7)}`,k2=`${cl.p2.lat.toFixed(7)},${cl.p2.lng.toFixed(7)}`;let id1=p2i.get(k1),id2=p2i.get(k2);if(!id1){id1=`n${nid++}`;p2i.set(k1,id1);pathGraph[id1]={lat:cl.p1.lat,lng:cl.p1.lng,edges:[],isConnection:true};}if(!id2){id2=`n${nid++}`;p2i.set(k2,id2);pathGraph[id2]={lat:cl.p2.lat,lng:cl.p2.lng,edges:[],isConnection:true};}const cd=calcDist(cl.p1.lat,cl.p1.lng,cl.p2.lat,cl.p2.lng);if(!pathGraph[id1].edges.some(e=>e.to===id2)){pathGraph[id1].edges.push({to:id2,dist:cd});pathGraph[id2].edges.push({to:id1,dist:cd});}connectionPoints.push({lat:(cl.p1.lat+cl.p2.lat)/2,lng:(cl.p1.lng+cl.p2.lng)/2});}}}}
+function findClosest(c1,c2){let md=Infinity,bp1={lat:c1[0][0],lng:c1[0][1]},bp2={lat:c2[0][0],lng:c2[0][1]};for(let i=0;i<c1.length-1;i++)for(let j=0;j<c2.length-1;j++)for(let t1=0;t1<=20;t1++)for(let t2=0;t2<=20;t2++){const la1=c1[i][0]+(t1/20)*(c1[i+1][0]-c1[i][0]),ln1=c1[i][1]+(t1/20)*(c1[i+1][1]-c1[i][1]),la2=c2[j][0]+(t2/20)*(c2[j+1][0]-c2[j][0]),ln2=c2[j][1]+(t2/20)*(c2[j+1][1]-c2[j][1]),d=calcDist(la1,ln1,la2,ln2);if(d<md){md=d;bp1={lat:la1,lng:ln1};bp2={lat:la2,lng:ln2};}}return{p1:bp1,p2:bp2,distance:md};}
+function showConnectionPoints(){connectionPoints.forEach(p=>{L.circleMarker([p.lat,p.lng],{radius:4,color:'#f59e0b',fillColor:'#f59e0b',fillOpacity:0.7,weight:2}).addTo(map);});}
+function calcDist(lat1,lng1,lat2,lng2){const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function findNearestNode(lat,lng){let n=null,md=Infinity;Object.keys(pathGraph).forEach(id=>{const d=calcDist(lat,lng,pathGraph[id].lat,pathGraph[id].lng);if(d<md){md=d;n={id,node:pathGraph[id],dist:d};}});return n;}
+
+function findShortestPath(sl,sn,el,en){
+    if(!Object.keys(pathGraph).length)return[[sl,sn],[el,en]];
+    const snode=findNearestNode(sl,sn),enode=findNearestNode(el,en);
+    if(!snode||!enode)return[[sl,sn],[el,en]];
+    const dists={},prev={},unv=new Set();Object.keys(pathGraph).forEach(id=>{dists[id]=Infinity;unv.add(id);});dists[snode.id]=0;
+    while(unv.size){let cur=null,md=Infinity;unv.forEach(id=>{if(dists[id]<md){md=dists[id];cur=id;}});if(!cur||cur===enode.id)break;unv.delete(cur);pathGraph[cur]?.edges.forEach(e=>{if(unv.has(e.to)){const a=dists[cur]+e.dist;if(a<dists[e.to]){dists[e.to]=a;prev[e.to]=cur;}}});}
+    if(dists[enode.id]===Infinity)return[[sl,sn],[el,en]];
+    const pids=[];let c=enode.id,sf=0;while(c&&c!==snode.id&&sf++<1000){pids.unshift(c);c=prev[c];}pids.unshift(snode.id);
+    const pts=[[sl,sn]];if(snode.dist>0.5)pts.push([pathGraph[snode.id].lat,pathGraph[snode.id].lng]);pids.forEach(id=>{if(pathGraph[id])pts.push([pathGraph[id].lat,pathGraph[id].lng]);});if(enode.dist>0.5)pts.push([pathGraph[enode.id].lat,pathGraph[enode.id].lng]);pts.push([el,en]);
+    const uq=[];pts.forEach(p=>{if(!uq.length||Math.abs(uq[uq.length-1][0]-p[0])>1e-6||Math.abs(uq[uq.length-1][1]-p[1])>1e-6)uq.push(p);});return uq;
+}
+
+function selectOffice(oid){
+    const o=officesData.find(o=>o.office_id==oid);if(!o)return;
+    if(isNavigating&&selectedOffice&&selectedOffice.office_id!==o.office_id)stopNavigation();
+    selectedOffice=o;
+    document.getElementById('officeName').textContent=o.name;
+    document.getElementById('officeDetails').innerHTML=`<div class="info-row"><i class="fas fa-building" style="color:#3b82f6;"></i><span>${o.building||'Main'}</span></div><div class="info-row"><i class="fas fa-door-open" style="color:#3b82f6;"></i><span>Room ${o.room_number||'N/A'}</span></div><span class="info-badge">${o.category}</span>`;
+    document.getElementById('infoPanel').classList.add('show');document.getElementById('searchSuggestions').classList.remove('show');
+    document.getElementById('searchInput').value=o.name;document.getElementById('searchClear').classList.add('visible');
+    map.flyTo([o.lat,o.lng],18,{duration:0.7});if(markers[o.office_id])markers[o.office_id].marker.openTooltip();
+}
+function closePanel(){document.getElementById('infoPanel').classList.remove('show');}
+function toggleDirectionPopup(){const p=document.getElementById('directionPopup'),b=document.querySelector('.nav-eta-toggle i');p.classList.toggle('show');if(b)b.className=p.classList.contains('show')?'fas fa-chevron-down':'fas fa-chevron-up';}
+
+function navigateToOffice(){
+    if(!selectedOffice){showToast('Select an office first','error');return;}
+    if(!graphBuilt){showToast('Paths loading...','error');return;}
+    if(isNavigating)stopNavigation();
+    showToast('Getting location...','info');
+    navigator.geolocation.getCurrentPosition(pos=>{
+        lastUserPosition={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        calculateAndDrawRoute(pos.coords.latitude,pos.coords.longitude,selectedOffice.lat,selectedOffice.lng);
+        isNavigating=true;
+        startRealtimeWalking();
+    },()=>showToast('Enable location services','error'),{enableHighAccuracy:true,timeout:10000});
+}
+
+function calculateAndDrawRoute(sl,sn,el,en,recalc=false){
+    const pts=findShortestPath(sl,sn,el,en);currentRoutePoints=pts;clearRoutes();
+    walkToPathLine=L.polyline([pts[0],pts[1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8}).addTo(map);
+    currentRoute=L.polyline(pts.slice(1,pts.length-1),{color:'#10b981',weight:5,dashArray:'10,7',opacity:0.9,lineCap:'round',lineJoin:'round'}).addTo(map);
+    walkFromPathLine=L.polyline([pts[pts.length-2],pts[pts.length-1]],{color:'#ef4444',weight:3.5,dashArray:'7,5',opacity:0.8}).addTo(map);
+    const dIcon=L.divIcon({html:'<div class="dest-marker"></div>',iconSize:[20,20],iconAnchor:[10,20]});destMarker=L.marker([el,en],{icon:dIcon}).addTo(map);
+    
+    // Replace user marker with animated walking marker
+    if(userMarker){map.removeLayer(userMarker);userMarker=null;}
+    updateWalkingMarker(sl,sn);
+    
+    const wtd=calcDist(sl,sn,pts[1][0],pts[1][1]),wfd=calcDist(pts[pts.length-2][0],pts[pts.length-2][1],el,en);let fwd=0;for(let i=1;i<pts.length-2;i++)fwd+=calcDist(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);const td=wtd+fwd+wfd;
+    const eta=document.getElementById('navEtaBar');eta.classList.remove('hide');eta.classList.add('show');
+    document.getElementById('navEtaDest').textContent=selectedOffice.name;document.getElementById('navEtaTime').textContent=`${Math.round(td)}m · ${(td/80).toFixed(1)} min`;
+    directionSteps=[{icon:'fa-location-dot',color:'#10b981',text:'You are here'},{icon:'fa-arrow-right',color:'#ef4444',text:`Walk <b>${Math.round(wtd)}m</b> to nearest footwalk <span style="color:#ef4444;">(red)</span>`},{icon:'fa-road',color:'#10b981',text:`Follow footwalks <b>${Math.round(fwd)}m</b> <span style="color:#10b981;">(green)</span>`},{icon:'fa-arrow-right',color:'#ef4444',text:`Walk <b>${Math.round(wfd)}m</b> to office <span style="color:#ef4444;">(red)</span>`},{icon:'fa-flag-checkered',color:'#3b82f6',text:`Arrive at <b>${selectedOffice.name}</b>`}];
+    updateDirectionContent();document.getElementById('directionPopup').classList.remove('show');const ti=document.querySelector('.nav-eta-toggle i');if(ti)ti.className='fas fa-chevron-up';closePanel();
+    if(!recalc){map.fitBounds(L.latLngBounds([pts[0],pts[1],...pts.slice(1,pts.length-1),pts[pts.length-2],pts[pts.length-1]]),{padding:[80,80],maxZoom:18});showToast(`Route: ${Math.round(td)}m`,'success');}
+}
+
+function updateWalkingMarker(lat,lng){
+    if(userMarker){map.removeLayer(userMarker);userMarker=null;}
+    if(userAccuracyCircle){map.removeLayer(userAccuracyCircle);userAccuracyCircle=null;}
+    userMarker=L.marker([lat,lng],{
+        icon:L.divIcon({
+            html:'<div class="walking-live-marker"></div>',
+            iconSize:[24,24],
+            iconAnchor:[12,12],
+            className:''
+        }),
+        zIndexOffset:1000
+    }).addTo(map);
+}
+
+function startRealtimeWalking(){
+    stopRealtimeWalking();
+    document.getElementById('liveBadge').classList.add('show');
+    document.getElementById('gpsBtn').classList.add('active');
+    showToast('Real-time navigation active - start walking!','success');
+    
+    realtimeWalkingWatchId = navigator.geolocation.watchPosition(
+        pos => {
+            const {latitude, longitude, accuracy} = pos.coords;
+            lastUserPosition = {lat: latitude, lng: longitude};
             
-            map = L.map('map').setView([9.853, 122.890], 18);
+            // Update walking marker position with real GPS coordinates
+            updateWalkingMarker(latitude, longitude);
             
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19,
-                detectRetina: true,
-                updateWhenIdle: true,
-                updateWhenZooming: false
-            }).addTo(map);
-            
-            loadOffices();
-            loadFootwalks();
-            
-            window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 100));
-        }
-        
-        async function loadOffices() {
-            try {
-                const response = await fetch('/api/offices');
-                const data = await response.json();
-                if (data.success && data.data) {
-                    officesData = data.data;
-                    data.data.forEach(office => addMarkerToMap(office));
-                }
-            } catch (error) {
-                console.error('Error loading offices:', error);
-            }
-        }
-        
-        function addMarkerToMap(office) {
-            if (!office.lat || !office.lng) return;
-            const isMobile = window.innerWidth <= 640;
-            const markerSize = isMobile ? 22 : 18;
-            let markerColor = office.category === 'Administrative' ? '#ef4444' : office.category === 'Academic' ? '#3b82f6' : '#10b981';
-            const customIcon = L.divIcon({
-                html: `<div style="background-color: ${markerColor}; width: ${markerSize}px; height: ${markerSize}px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
-                iconSize: [markerSize, markerSize],
-                className: 'custom-marker'
-            });
-            const marker = L.marker([office.lat, office.lng], { icon: customIcon }).addTo(map);
-            marker.bindPopup(`
-                <div class="p-2 min-w-[160px]">
-                    <strong class="text-gray-800 text-sm">${office.name}</strong><br>
-                    <span class="text-xs text-gray-600">${office.building}</span><br>
-                    <button onclick="selectOffice('${office.office_id}')" class="mt-2 bg-blue-600 text-white px-3 py-1.5 rounded text-xs touch-btn">
-                        <i class="fas fa-directions mr-1"></i> Directions
-                    </button>
-                </div>
-            `, { maxWidth: 250 });
-            markers[office.office_id] = { marker: marker, data: office };
-        }
-        
-        async function loadFootwalks() {
-            try {
-                const response = await fetch('/api/footwalks');
-                const data = await response.json();
-                if (data.success && data.data && data.data.length > 0) {
-                    footwalkPaths = data.data.map(fw => ({
-                        id: fw.id,
-                        name: fw.name,
-                        color: fw.color || '#3b82f6',
-                        width: fw.width || 2,
-                        coordinates: JSON.parse(fw.coordinates),
-                        type: fw.type
-                    }));
-                    
-                    footwalkPaths.forEach(path => drawFootwalkOnMap(path));
-                    buildPathGraph();
-                    showConnectionPoints();
-                    graphBuilt = true;
-                    showToast(`${footwalkPaths.length} footwalk paths loaded`, 'success');
-                } else {
-                    showToast('No footwalks found. Admin needs to add pathways.', 'info');
-                }
-                showLoading(false);
-            } catch (error) {
-                console.error('Error loading footwalks:', error);
-                showLoading(false);
-            }
-        }
-        
-        function drawFootwalkOnMap(path) {
-            try {
-                const latlngs = path.coordinates.map(c => [c[0], c[1]]);
-                L.polyline(latlngs, {
-                    color: path.color,
-                    weight: path.width * 2 || 4,
-                    opacity: 0.6,
-                    smoothFactor: 1
-                }).addTo(map);
-            } catch (e) {}
-        }
-        
-        function buildPathGraph() {
-            pathGraph = {};
-            let nodeId = 0;
-            const pointToId = new Map();
-            
-            footwalkPaths.forEach(path => {
-                for (let i = 0; i < path.coordinates.length; i++) {
-                    const coord = path.coordinates[i];
-                    const key = `${coord[0].toFixed(7)},${coord[1].toFixed(7)}`;
-                    if (!pointToId.has(key)) {
-                        const id = `n${nodeId++}`;
-                        pointToId.set(key, id);
-                        pathGraph[id] = { lat: coord[0], lng: coord[1], edges: [], pathId: path.id };
-                    }
-                }
-            });
-            
-            footwalkPaths.forEach(path => {
-                for (let i = 0; i < path.coordinates.length - 1; i++) {
-                    const key1 = `${path.coordinates[i][0].toFixed(7)},${path.coordinates[i][1].toFixed(7)}`;
-                    const key2 = `${path.coordinates[i+1][0].toFixed(7)},${path.coordinates[i+1][1].toFixed(7)}`;
-                    const id1 = pointToId.get(key1);
-                    const id2 = pointToId.get(key2);
-                    if (id1 && id2) {
-                        const dist = calculateDistance(path.coordinates[i][0], path.coordinates[i][1], path.coordinates[i+1][0], path.coordinates[i+1][1]);
-                        if (!pathGraph[id1].edges.some(e => e.to === id2)) {
-                            pathGraph[id1].edges.push({ to: id2, dist: dist });
-                            pathGraph[id2].edges.push({ to: id1, dist: dist });
-                        }
-                    }
-                }
-            });
-            
-            const CONNECTION_DISTANCE = 15;
-            for (let i = 0; i < footwalkPaths.length; i++) {
-                for (let j = i + 1; j < footwalkPaths.length; j++) {
-                    const path1 = footwalkPaths[i];
-                    const path2 = footwalkPaths[j];
-                    const closest = findClosestBetweenPaths(path1.coordinates, path2.coordinates);
-                    
-                    if (closest.distance < CONNECTION_DISTANCE) {
-                        const point1Key = `${closest.point1.lat.toFixed(7)},${closest.point1.lng.toFixed(7)}`;
-                        const point2Key = `${closest.point2.lat.toFixed(7)},${closest.point2.lng.toFixed(7)}`;
-                        
-                        let node1Id = pointToId.get(point1Key);
-                        let node2Id = pointToId.get(point2Key);
-                        
-                        if (!node1Id) {
-                            node1Id = `n${nodeId++}`;
-                            pointToId.set(point1Key, node1Id);
-                            pathGraph[node1Id] = { lat: closest.point1.lat, lng: closest.point1.lng, edges: [], pathId: path1.id, isConnection: true };
-                            insertNodeIntoPath(path1.id, closest.point1, pointToId, pathGraph);
-                        }
-                        if (!node2Id) {
-                            node2Id = `n${nodeId++}`;
-                            pointToId.set(point2Key, node2Id);
-                            pathGraph[node2Id] = { lat: closest.point2.lat, lng: closest.point2.lng, edges: [], pathId: path2.id, isConnection: true };
-                            insertNodeIntoPath(path2.id, closest.point2, pointToId, pathGraph);
-                        }
-                        
-                        const connectDist = calculateDistance(closest.point1.lat, closest.point1.lng, closest.point2.lat, closest.point2.lng);
-                        if (!pathGraph[node1Id].edges.some(e => e.to === node2Id)) {
-                            pathGraph[node1Id].edges.push({ to: node2Id, dist: connectDist });
-                            pathGraph[node2Id].edges.push({ to: node1Id, dist: connectDist });
-                        }
-                        
-                        connectionPoints.push({ lat: (closest.point1.lat + closest.point2.lat) / 2, lng: (closest.point1.lng + closest.point2.lng) / 2, paths: [path1.name, path2.name] });
-                    }
-                }
-            }
-        }
-        
-        function insertNodeIntoPath(pathId, point, pointToId, graph) {
-            const path = footwalkPaths.find(p => p.id === pathId);
-            if (!path) return;
-            
-            const pointKey = `${point.lat.toFixed(7)},${point.lng.toFixed(7)}`;
-            const newNodeId = pointToId.get(pointKey);
-            
-            for (let i = 0; i < path.coordinates.length - 1; i++) {
-                const start = path.coordinates[i];
-                const end = path.coordinates[i+1];
-                const distToStart = calculateDistance(point.lat, point.lng, start[0], start[1]);
-                const distToEnd = calculateDistance(point.lat, point.lng, end[0], end[1]);
-                const segmentLength = calculateDistance(start[0], start[1], end[0], end[1]);
-                
-                if (Math.abs(distToStart + distToEnd - segmentLength) < 2) {
-                    const startKey = `${start[0].toFixed(7)},${start[1].toFixed(7)}`;
-                    const endKey = `${end[0].toFixed(7)},${end[1].toFixed(7)}`;
-                    const startNodeId = pointToId.get(startKey);
-                    const endNodeId = pointToId.get(endKey);
-                    
-                    if (startNodeId && endNodeId) {
-                        graph[startNodeId].edges = graph[startNodeId].edges.filter(e => e.to !== endNodeId);
-                        graph[endNodeId].edges = graph[endNodeId].edges.filter(e => e.to !== startNodeId);
-                        
-                        const dist1 = calculateDistance(start[0], start[1], point.lat, point.lng);
-                        const dist2 = calculateDistance(point.lat, point.lng, end[0], end[1]);
-                        
-                        graph[startNodeId].edges.push({ to: newNodeId, dist: dist1 });
-                        graph[newNodeId].edges.push({ to: startNodeId, dist: dist1 });
-                        graph[newNodeId].edges.push({ to: endNodeId, dist: dist2 });
-                        graph[endNodeId].edges.push({ to: newNodeId, dist: dist2 });
-                    }
-                    break;
-                }
-            }
-        }
-        
-        function findClosestBetweenPaths(coords1, coords2) {
-            let minDist = Infinity;
-            let bestPoint1 = { lat: coords1[0][0], lng: coords1[0][1] };
-            let bestPoint2 = { lat: coords2[0][0], lng: coords2[0][1] };
-            
-            for (let i = 0; i < coords1.length - 1; i++) {
-                for (let j = 0; j < coords2.length - 1; j++) {
-                    for (let t1 = 0; t1 <= 20; t1++) {
-                        const tVal1 = t1 / 20;
-                        const lat1 = coords1[i][0] + tVal1 * (coords1[i+1][0] - coords1[i][0]);
-                        const lng1 = coords1[i][1] + tVal1 * (coords1[i+1][1] - coords1[i][1]);
-                        for (let t2 = 0; t2 <= 20; t2++) {
-                            const tVal2 = t2 / 20;
-                            const lat2 = coords2[j][0] + tVal2 * (coords2[j+1][0] - coords2[j][0]);
-                            const lng2 = coords2[j][1] + tVal2 * (coords2[j+1][1] - coords2[j][1]);
-                            const dist = calculateDistance(lat1, lng1, lat2, lng2);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                bestPoint1 = { lat: lat1, lng: lng1 };
-                                bestPoint2 = { lat: lat2, lng: lng2 };
-                            }
-                        }
-                    }
-                }
-            }
-            return { point1: bestPoint1, point2: bestPoint2, distance: minDist };
-        }
-        
-        function showConnectionPoints() {
-            connectionPoints.forEach(point => {
-                const icon = L.divIcon({
-                    html: `<div style="background-color: #ff9800; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
-                    iconSize: [14, 14]
-                });
-                L.marker([point.lat, point.lng], { icon }).addTo(map);
-            });
-        }
-        
-        function calculateDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-        
-        function findNearestNodeOnPath(lat, lng) {
-            let nearest = null;
-            let minDist = Infinity;
-            Object.keys(pathGraph).forEach(nodeId => {
-                const node = pathGraph[nodeId];
-                const dist = calculateDistance(lat, lng, node.lat, node.lng);
-                if (dist < minDist) {
-                    minDist = dist;
-                    nearest = { id: nodeId, node: node, dist: dist };
-                }
-            });
-            return nearest;
-        }
-        
-        function findShortestPath(startLat, startLng, endLat, endLng) {
-            if (Object.keys(pathGraph).length === 0) {
-                return [[startLat, startLng], [endLat, endLng]];
-            }
-            
-            const startNode = findNearestNodeOnPath(startLat, startLng);
-            const endNode = findNearestNodeOnPath(endLat, endLng);
-            
-            if (!startNode || !endNode) {
-                return [[startLat, startLng], [endLat, endLng]];
-            }
-            
-            const distances = {};
-            const previous = {};
-            const unvisited = new Set();
-            
-            Object.keys(pathGraph).forEach(nodeId => {
-                distances[nodeId] = Infinity;
-                unvisited.add(nodeId);
-            });
-            distances[startNode.id] = 0;
-            
-            while (unvisited.size > 0) {
-                let current = null;
-                let minDist = Infinity;
-                unvisited.forEach(nodeId => {
-                    if (distances[nodeId] < minDist) {
-                        minDist = distances[nodeId];
-                        current = nodeId;
-                    }
-                });
-                if (!current || current === endNode.id) break;
-                unvisited.delete(current);
-                if (pathGraph[current] && pathGraph[current].edges) {
-                    pathGraph[current].edges.forEach(edge => {
-                        if (unvisited.has(edge.to)) {
-                            const alt = distances[current] + edge.dist;
-                            if (alt < distances[edge.to]) {
-                                distances[edge.to] = alt;
-                                previous[edge.to] = current;
-                            }
-                        }
-                    });
-                }
-            }
-            
-            if (distances[endNode.id] === Infinity) {
-                return [[startLat, startLng], [endLat, endLng]];
-            }
-            
-            const pathIds = [];
-            let curr = endNode.id;
-            while (curr && curr !== startNode.id) {
-                pathIds.unshift(curr);
-                curr = previous[curr];
-                if (!curr) break;
-            }
-            pathIds.unshift(startNode.id);
-            
-            const points = [];
-            points.push([startLat, startLng]);
-            if (startNode.dist > 0.5 && pathGraph[startNode.id]) {
-                points.push([pathGraph[startNode.id].lat, pathGraph[startNode.id].lng]);
-            }
-            pathIds.forEach(id => { if (pathGraph[id]) points.push([pathGraph[id].lat, pathGraph[id].lng]); });
-            if (endNode.dist > 0.5 && pathGraph[endNode.id]) {
-                points.push([pathGraph[endNode.id].lat, pathGraph[endNode.id].lng]);
-            }
-            points.push([endLat, endLng]);
-            
-            const unique = [];
-            points.forEach(p => {
-                if (unique.length === 0 || unique[unique.length-1][0] !== p[0] || unique[unique.length-1][1] !== p[1]) {
-                    unique.push(p);
-                }
-            });
-            return unique;
-        }
-        
-        function selectOffice(officeId) {
-            selectedOffice = officesData.find(o => o.office_id === officeId);
+            // Update ETA based on real position
             if (selectedOffice) {
-                document.getElementById('officeName').innerHTML = selectedOffice.name;
-                document.getElementById('officeDetails').innerHTML = `
-                    <p class="text-sm"><i class="fas fa-building mr-2 w-4"></i>${selectedOffice.building}</p>
-                    <p class="text-sm"><i class="fas fa-door-open mr-2 w-4"></i>${selectedOffice.room_number || 'Ground Floor'}</p>
-                    <p><span class="px-2 py-0.5 rounded-full text-xs" style="background:#dbeafe">${selectedOffice.category}</span></p>
-                    <p class="text-sm"><i class="far fa-clock mr-2 w-4"></i>${selectedOffice.working_hours || '8:00 AM - 5:00 PM'}</p>
-                `;
-                document.getElementById('infoPanel').classList.add('show');
-                map.setView([selectedOffice.lat, selectedOffice.lng], 18);
-                markers[officeId].marker.openPopup();
-            }
-        }
-        
-        function navigateToOffice() {
-            if (!selectedOffice) {
-                showToast('Please select an office first', 'error');
-                return;
-            }
-            if (!graphBuilt || Object.keys(pathGraph).length === 0) {
-                showToast('Footwalk paths are still loading...', 'error');
-                return;
-            }
-            
-            showToast('Getting your location...', 'info');
-            
-            navigator.geolocation.getCurrentPosition(pos => {
-                const userLat = pos.coords.latitude;
-                const userLng = pos.coords.longitude;
-                calculateAndDrawRoute(userLat, userLng, selectedOffice.lat, selectedOffice.lng);
+                const distance = calcDist(latitude, longitude, selectedOffice.lat, selectedOffice.lng);
+                document.getElementById('navEtaTime').textContent = `${Math.round(distance)}m · ${(distance/80).toFixed(1)} min`;
                 
-                // Start live tracking if not already active
-                if (!isTracking) {
-                    startLiveTracking();
-                }
-            }, () => {
-                showToast('Please enable location services for navigation', 'error');
-            });
-        }
-        
-        function calculateAndDrawRoute(startLat, startLng, endLat, endLng, isRecalculation = false) {
-            const pathPoints = findShortestPath(startLat, startLng, endLat, endLng);
-            currentRoutePoints = pathPoints;
-            
-            if (currentRoute && map.hasLayer(currentRoute)) map.removeLayer(currentRoute);
-            currentRoute = L.polyline(pathPoints, {
-                color: '#22c55e',
-                weight: 5,
-                dashArray: '10, 10',
-                opacity: 0.9,
-                className: 'route-shortest'
-            }).addTo(map);
-            
-            if (!isRecalculation) {
-                map.fitBounds(currentRoute.getBounds());
-            }
-            
-            // Update user marker if exists
-            updateUserMarker(startLat, startLng);
-            
-            // Calculate remaining distance
-            let remainingDist = 0;
-            for (let i = 0; i < pathPoints.length - 1; i++) {
-                remainingDist += calculateDistance(pathPoints[i][0], pathPoints[i][1], pathPoints[i+1][0], pathPoints[i+1][1]);
-            }
-            
-            // Update navigation UI
-            document.getElementById('navInstructions').classList.add('show');
-            document.getElementById('navDistance').innerHTML = `<i class="fas fa-route mr-1"></i> Total Distance: ${Math.round(remainingDist)} meters (${(remainingDist / 80).toFixed(1)} min walk)`;
-            document.getElementById('navStepsList').innerHTML = `
-                <div class="py-1"><i class="fas fa-location-dot mr-2 text-green-500 w-4"></i> Your current location</div>
-                <div class="py-1"><i class="fas fa-road mr-2 text-blue-500 w-4"></i> Follow the green path along footwalks</div>
-                ${connectionPoints.length > 0 ? '<div class="py-1"><i class="fas fa-exchange-alt mr-2 text-orange-500 w-4"></i> Paths connect at orange points</div>' : ''}
-                <div class="py-1"><i class="fas fa-flag-checkered mr-2 text-red-500 w-4"></i> Arrive at ${selectedOffice.name}</div>
-            `;
-            
-            remainingDistanceElem.classList.remove('hidden');
-            remainingDistValue.innerHTML = `${Math.round(remainingDist)} meters remaining (${(remainingDist / 80).toFixed(1)} min)`;
-            
-            closePanel();
-            
-            if (!isRecalculation) {
-                showToast(`Route found! ${Math.round(remainingDist)} meters to destination`, 'success');
-            }
-        }
-        
-        function updateRemainingDistance(currentLat, currentLng) {
-            if (!currentRoutePoints || currentRoutePoints.length < 2 || !selectedOffice) return;
-            
-            // Find closest point on route to current position
-            let minDistToRoute = Infinity;
-            let closestIndex = 0;
-            
-            for (let i = 0; i < currentRoutePoints.length; i++) {
-                const dist = calculateDistance(currentLat, currentLng, currentRoutePoints[i][0], currentRoutePoints[i][1]);
-                if (dist < minDistToRoute) {
-                    minDistToRoute = dist;
-                    closestIndex = i;
+                // Check if arrived
+                if (distance < 15) {
+                    showToast(`🎉 You've arrived at ${selectedOffice.name}!`,'success');
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+                    stopNavigation();
                 }
             }
             
-            // Calculate remaining distance from closest point to destination
-            let remainingDist = 0;
-            for (let i = closestIndex; i < currentRoutePoints.length - 1; i++) {
-                remainingDist += calculateDistance(currentRoutePoints[i][0], currentRoutePoints[i][1], currentRoutePoints[i+1][0], currentRoutePoints[i+1][1]);
-            }
-            
-            remainingDistValue.innerHTML = `${Math.round(remainingDist)} meters remaining (${(remainingDist / 80).toFixed(1)} min)`;
-            
-            // Check if destination reached (within 10 meters)
-            const distToDest = calculateDistance(currentLat, currentLng, selectedOffice.lat, selectedOffice.lng);
-            if (distToDest < 10) {
-                showToast(`🎉 You have arrived at ${selectedOffice.name}!`, 'success');
+            // Keep map centered on user while walking
+            map.setView([latitude, longitude], 18, {animate: true, duration: 0.5});
+        },
+        err => {
+            if (err.code === 1) {
+                showToast('GPS permission denied','error');
                 stopNavigation();
-                stopLiveTracking();
             }
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 1000,
+            timeout: 10000
         }
-        
-        function updateUserMarker(lat, lng, accuracy = null) {
-            if (userMarker && map.hasLayer(userMarker)) map.removeLayer(userMarker);
-            if (userAccuracyCircle && map.hasLayer(userAccuracyCircle)) map.removeLayer(userAccuracyCircle);
-            
-            const userIcon = L.divIcon({
-                html: '<div class="user-location-marker"></div>',
-                iconSize: [20, 20],
-                className: 'user-marker'
-            });
-            
-            userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
-            userMarker.bindPopup('<b>You are here</b>').openPopup();
-            
-            if (accuracy && accuracy < 100) {
-                userAccuracyCircle = L.circle([lat, lng], {
-                    radius: accuracy,
-                    color: '#22c55e',
-                    weight: 1,
-                    opacity: 0.3,
-                    fillColor: '#22c55e',
-                    fillOpacity: 0.1,
-                    className: 'accuracy-circle'
-                }).addTo(map);
-            }
-        }
-        
-        function startLiveTracking() {
-            if (watchId !== null) return;
-            
-            isTracking = true;
-            document.getElementById('liveBadge').classList.remove('hidden');
-            document.getElementById('gpsIndicator').classList.add('active');
-            document.getElementById('gpsIndicator').innerHTML = '<i class="fas fa-satellite-dish text-lg"></i>';
-            
-            showToast('Live GPS tracking activated - following your movement', 'success');
-            
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    const { latitude, longitude, accuracy } = position.coords;
-                    lastUserPosition = { lat: latitude, lng: longitude };
-                    
-                    updateUserMarker(latitude, longitude, accuracy);
-                    
-                    if (selectedOffice && currentRoute) {
-                        updateRemainingDistance(latitude, longitude);
-                        
-                        // Recalculate route every 10 seconds or when significantly off course
-                        routeRecalculationCount++;
-                        if (routeRecalculationCount >= 10) {
-                            routeRecalculationCount = 0;
-                            const distToRoute = calculateDistanceToRoute(latitude, longitude);
-                            if (distToRoute > 15) {
-                                showToast('Recalculating route...', 'info');
-                                calculateAndDrawRoute(latitude, longitude, selectedOffice.lat, selectedOffice.lng, true);
-                            }
-                        }
-                        
-                        // Auto-center map on user if tracking is active
-                        if (isTracking) {
-                            map.setView([latitude, longitude], 18);
-                        }
-                    }
-                },
-                (error) => {
-                    console.error('GPS error:', error);
-                    if (error.code === 1) {
-                        showToast('Please enable GPS for live tracking', 'error');
-                        stopLiveTracking();
-                    }
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 2000,
-                    timeout: 10000
-                }
-            );
-        }
-        
-        function calculateDistanceToRoute(lat, lng) {
-            if (!currentRoutePoints) return Infinity;
-            let minDist = Infinity;
-            for (let i = 0; i < currentRoutePoints.length - 1; i++) {
-                const dist = distanceToSegment(lat, lng, 
-                    currentRoutePoints[i][0], currentRoutePoints[i][1],
-                    currentRoutePoints[i+1][0], currentRoutePoints[i+1][1]);
-                if (dist < minDist) minDist = dist;
-            }
-            return minDist;
-        }
-        
-        function distanceToSegment(px, py, x1, y1, x2, y2) {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-            if (t < 0) return calculateDistance(px, py, x1, y1);
-            if (t > 1) return calculateDistance(px, py, x2, y2);
-            const ix = x1 + t * dx;
-            const iy = y1 + t * dy;
-            return calculateDistance(px, py, ix, iy);
-        }
-        
-        function stopLiveTracking() {
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            isTracking = false;
-            document.getElementById('liveBadge').classList.add('hidden');
-            document.getElementById('gpsIndicator').classList.remove('active');
-            document.getElementById('gpsIndicator').innerHTML = '<i class="fas fa-location-arrow text-lg"></i>';
-        }
-        
-        function toggleLiveTracking() {
-            if (isTracking) {
-                stopLiveTracking();
-                showToast('Live tracking stopped', 'info');
-            } else {
-                startLiveTracking();
-            }
-        }
-        
-        function centerToUser() {
-            if (!isTracking) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    map.setView([pos.coords.latitude, pos.coords.longitude], 18);
-                    updateUserMarker(pos.coords.latitude, pos.coords.longitude);
-                    showToast('Location found!', 'success');
-                    if (!isTracking) startLiveTracking();
-                }, () => showToast('Unable to get location', 'error'));
-            } else {
-                if (lastUserPosition) {
-                    map.setView([lastUserPosition.lat, lastUserPosition.lng], 18);
-                }
-            }
-        }
-        
-        function stopNavigation() {
-            if (currentRoute && map.hasLayer(currentRoute)) map.removeLayer(currentRoute);
-            if (userMarker && map.hasLayer(userMarker)) map.removeLayer(userMarker);
-            if (userAccuracyCircle && map.hasLayer(userAccuracyCircle)) map.removeLayer(userAccuracyCircle);
-            document.getElementById('navInstructions').classList.remove('show');
-            remainingDistanceElem.classList.add('hidden');
-            currentRoute = null;
-            currentRoutePoints = [];
-            stopLiveTracking();
-            showToast('Navigation stopped', 'info');
-        }
-        
-        function findNearestOffice() {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const userLat = pos.coords.latitude, userLng = pos.coords.longitude;
-                let nearest = null, minDist = Infinity;
-                officesData.forEach(office => {
-                    const dist = calculateDistance(userLat, userLng, office.lat, office.lng);
-                    if (dist < minDist) { minDist = dist; nearest = office; }
-                });
-                if (nearest) {
-                    showToast(`Nearest: ${nearest.name} (${Math.round(minDist)}m away)`, 'success');
-                    selectOffice(nearest.office_id);
-                }
-            }, () => showToast('Enable location to find nearest office', 'error'));
-        }
-        
-        function resetMap() {
-            map.setView([9.853, 122.890], 18);
-            stopNavigation();
-            closePanel();
-            stopLiveTracking();
-            if (userMarker && map.hasLayer(userMarker)) map.removeLayer(userMarker);
-            userMarker = null;
-        }
-        
-        function closePanel() { document.getElementById('infoPanel').classList.remove('show'); selectedOffice = null; }
-        
-        function showToast(message, type) {
-            const toast = document.createElement('div');
-            toast.className = `fixed bottom-24 left-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white text-sm ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-center`;
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>${message}`;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-        
-        function showLoading(show) {
-            const loader = document.getElementById('loadingIndicator');
-            if (show && !loader) {
-                const div = document.createElement('div');
-                div.id = 'loadingIndicator';
-                div.className = 'loading';
-                div.innerHTML = '<i class="fas fa-spinner fa-spin text-2xl text-blue-500 mb-2"></i><p class="text-sm">Loading map...</p>';
-                document.body.appendChild(div);
-            } else if (!show && loader) loader.remove();
-        }
-        
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const term = e.target.value.toLowerCase();
-            if (term.length < 2) return;
-            const matched = officesData.filter(o => o.name.toLowerCase().includes(term) || o.building.toLowerCase().includes(term));
-            if (matched.length) {
-                const bounds = L.latLngBounds();
-                matched.forEach(o => { if (markers[o.office_id]) bounds.extend(markers[o.office_id].marker.getLatLng()); });
-                map.fitBounds(bounds);
-                showToast(`Found ${matched.length} office(s)`, 'success');
-            }
-        });
-        
-        document.addEventListener('DOMContentLoaded', initMap);
-    </script>
+    );
+}
+
+function stopRealtimeWalking(){
+    if(realtimeWalkingWatchId){
+        navigator.geolocation.clearWatch(realtimeWalkingWatchId);
+        realtimeWalkingWatchId = null;
+    }
+}
+
+function clearRoutes(){
+    stopRealtimeWalking();
+    if(currentRoute){map.removeLayer(currentRoute);currentRoute=null;}
+    if(walkToPathLine){map.removeLayer(walkToPathLine);walkToPathLine=null;}
+    if(walkFromPathLine){map.removeLayer(walkFromPathLine);walkFromPathLine=null;}
+    if(destMarker){map.removeLayer(destMarker);destMarker=null;}
+}
+function updateDirectionContent(){document.getElementById('directionContent').innerHTML=directionSteps.map(s=>`<div class="direction-step"><div class="direction-step-icon"><i class="fas ${s.icon}" style="color:${s.color};"></i></div><div>${s.text}</div></div>`).join('');}
+
+function startLiveTracking(){if(watchId)return;isTracking=true;document.getElementById('liveBadge').classList.add('show');document.getElementById('gpsBtn').classList.add('active');showToast('Live GPS active','success');watchId=navigator.geolocation.watchPosition(pos=>{const{latitude,longitude,accuracy}=pos.coords;lastUserPosition={lat:latitude,lng:longitude};if(!isNavigating){updateUserMarker(latitude,longitude,accuracy);}if(isTracking)map.setView([latitude,longitude],18,{animate:true,duration:0.5});},err=>{if(err.code===1){showToast('GPS permission denied','error');stopLiveTracking();}},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});}
+function stopLiveTracking(){if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}isTracking=false;document.getElementById('liveBadge').classList.remove('show');document.getElementById('gpsBtn').classList.remove('active');}
+function toggleLiveTracking(){isTracking?(stopLiveTracking(),showToast('Tracking off','info')):startLiveTracking();}
+function centerToUser(){navigator.geolocation.getCurrentPosition(pos=>{updateUserMarker(pos.coords.latitude,pos.coords.longitude);map.setView([pos.coords.latitude,pos.coords.longitude],18);if(!isTracking)startLiveTracking();showToast('Location found','success');},()=>showToast('Unable to get location','error'),{enableHighAccuracy:true,timeout:8000});}
+function stopNavigation(){
+    stopRealtimeWalking();
+    clearRoutes();
+    if(userMarker){map.removeLayer(userMarker);userMarker=null;}
+    if(userAccuracyCircle){map.removeLayer(userAccuracyCircle);userAccuracyCircle=null;}
+    const eta=document.getElementById('navEtaBar');eta.classList.add('hide');eta.classList.remove('show');
+    document.getElementById('directionPopup').classList.remove('show');
+    const ti=document.querySelector('.nav-eta-toggle i');if(ti)ti.className='fas fa-chevron-up';
+    currentRoutePoints=[];directionSteps=[];isNavigating=false;
+    stopLiveTracking();
+}
+function findNearestOffice(){navigator.geolocation.getCurrentPosition(pos=>{let n=null,md=Infinity;officesData.forEach(o=>{if(o.lat&&o.lng){const d=calcDist(pos.coords.latitude,pos.coords.longitude,o.lat,o.lng);if(d<md){md=d;n=o;}}});if(n){showToast(`Nearest: ${n.name} (${Math.round(md)}m)`,'success');selectOffice(n.office_id);}},()=>showToast('Enable location','error'),{enableHighAccuracy:true,timeout:8000});}
+function resetMap(){
+    stopNavigation();
+    closePanel();
+    stopLiveTracking();
+    stopRealtimeWalking();
+    if(userMarker){map.removeLayer(userMarker);userMarker=null;}
+    map.setView([9.853,122.890],18);
+    document.getElementById('searchInput').value='';
+    document.getElementById('searchClear').classList.remove('visible');
+    document.getElementById('searchSuggestions').classList.remove('show');
+}
+function updateUserMarker(lat,lng,acc=null){
+    if(userMarker)map.removeLayer(userMarker);
+    if(userAccuracyCircle)map.removeLayer(userAccuracyCircle);
+    userMarker=L.marker([lat,lng],{icon:L.divIcon({html:'<div class="user-marker"></div>',iconSize:[16,16],className:''}),zIndexOffset:1000}).addTo(map);
+    if(acc&&acc<50)userAccuracyCircle=L.circle([lat,lng],{radius:acc,color:'#10b981',weight:1,opacity:0.25,fillOpacity:0.06}).addTo(map);
+}
+function showToast(msg,type){const ex=document.querySelector('.toast');if(ex){ex.style.opacity='0';ex.style.transform='translateY(10px)';ex.style.transition='all 0.25s';setTimeout(()=>ex.remove(),250);}const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<i class="fas fa-${type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle'}"></i> ${msg}`;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all 0.3s';setTimeout(()=>t.remove(),300);},type==='error'?4000:2500);}
+function showLoading(s){document.getElementById('loadingOverlay').classList.toggle('hidden',!s);}
+document.addEventListener('DOMContentLoaded',initMap);
+</script>
 </body>
 </html>
