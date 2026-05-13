@@ -19,7 +19,7 @@ Route::get('/office/{id}', function ($id) {
         'success' => true,
         'data' => $office
     ]);
-});
+})->name('offices.show');
 
 // Office CRUD
 Route::post('/offices', function (Request $request) {
