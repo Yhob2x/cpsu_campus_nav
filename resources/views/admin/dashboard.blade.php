@@ -207,7 +207,6 @@ document.getElementById('officeForm').addEventListener('submit',async(e)=>{
     }
     
     const data = {
-        office_id: document.getElementById('officeId').value || undefined,
         name: document.getElementById('officeName').value,
         building: document.getElementById('officeBuilding').value,
         room_number: document.getElementById('officeRoom').value,
@@ -222,8 +221,20 @@ document.getElementById('officeForm').addEventListener('submit',async(e)=>{
     }
     
     try{
-        const method = data.office_id ? 'PUT' : 'POST';
-        const url = data.office_id ? `/api/offices/${data.office_id}` : '/api/offices';
+        const officeId = document.getElementById('officeId').value;
+        let url, method;
+        
+        if (officeId) {
+            // Update existing office
+            url = '{{ route("offices.update", "") }}/' + officeId;
+            method = 'PUT';
+            data.office_id = officeId;
+        } else {
+            // Create new office
+            url = '{{ route("offices.index") }}';
+            method = 'POST';
+        }
+        
         const resp = await fetch(url,{
             method,
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
@@ -274,7 +285,12 @@ async function deleteOffice(id){
         const el = document.getElementById(`office-item-${id}`);
         if(el) el.classList.add('deleting');
         if(markers[id]){map.removeLayer(markers[id]);delete markers[id];}
-        const r = await fetch(`/api/offices/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}});
+        const r = await fetch('{{ route("offices.delete", "") }}/' + id, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrf
+            }
+        });
         const d = await r.json();
         if(d.success){
             officesData = officesData.filter(o=>o.office_id!=id);
@@ -286,7 +302,7 @@ async function deleteOffice(id){
 
 async function loadOffices(){
     try{
-        const r = await fetch('/api/offices');
+        const r = await fetch('{{ route("offices.index") }}');
         const d = await r.json();
         if(d.success && d.data){
             officesData = d.data;
@@ -503,8 +519,18 @@ document.getElementById('pathForm').addEventListener('submit',async function(e){
     if(!data.name){showToast('Enter a path name','error');return;}
     
     try{
-        const method = pid?'PUT':'POST';
-        const url = pid?`/api/footwalks/${pid}`:'/api/footwalks';
+        let url, method;
+        
+        if (pid) {
+            // Update existing footwalk
+            url = '{{ route("footwalks.update", "") }}/' + pid;
+            method = 'PUT';
+        } else {
+            // Create new footwalk
+            url = '{{ route("footwalks.index") }}';
+            method = 'POST';
+        }
+        
         const resp = await fetch(url,{method,headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf},body:JSON.stringify(data)});
         const result = await resp.json();
         if(result.success){
@@ -524,7 +550,8 @@ document.getElementById('pathForm').addEventListener('submit',async function(e){
 // ============ LOAD FOOTWALKS ============
 async function loadFootwalks(){
     try{
-        const r=await fetch('/api/footwalks');const d=await r.json();
+        const r = await fetch('{{ route("footwalks.index") }}');
+        const d = await r.json();
         if(d.success&&d.data){footwalksData=d.data;displayFootwalksList(d.data);redrawAllFootwalks();showAllPathMarkers();findAndDisplayConnections();}
     }catch(e){console.error(e);}
 }
@@ -585,14 +612,64 @@ function showAllConnections(){if(!connectionMarkers.length){showToast('None','in
 
 function displayFootwalksList(fw){document.getElementById('pathsList').innerHTML=fw.length?fw.map(f=>`<div class="bg-gray-50 rounded-lg p-3 list-item" id="path-item-${f.id}"><div class="flex justify-between"><div class="flex-1"><div class="flex items-center"><div class="w-3 h-3 rounded-full mr-2" style="background:${f.color||'#3b82f6'}"></div><h4 class="font-semibold text-sm">${f.name}</h4></div><p class="text-xs text-gray-500">${f.type||'walkway'} | ${f.width||2}m</p></div><div class="flex gap-1"><button onclick="editFootwalk('${f.id}')" class="text-blue-600 p-1"><i class="fas fa-edit"></i></button><button onclick="deleteFootwalkItem('${f.id}')" class="text-red-600 p-1"><i class="fas fa-trash"></i></button></div></div></div>`).join(''):'<div class="text-center text-gray-400 p-4">No footwalks</div>';}
 
-async function editFootwalk(id){try{const r=await fetch(`/api/footwalks/${id}`);const d=await r.json();if(d.success){const f=d.data;document.getElementById('pathId').value=f.id;document.getElementById('pathName').value=f.name||'';document.getElementById('pathType').value=f.type||'walkway';document.getElementById('pathColor').value=f.color||'#3b82f6';document.getElementById('pathWidth').value=f.width||2;document.getElementById('pathDescription').value=f.description||'';let c=[];try{c=JSON.parse(f.coordinates);}catch(e){}let len=0;for(let i=0;i<c.length-1;i++)len+=calcDist(c[i][0],c[i][1],c[i+1][0],c[i+1][1]);document.getElementById('pathLength').innerText=len.toFixed(2);window.tempPathCoords=c;document.getElementById('pathModalTitle').innerText='Edit Footwalk';document.getElementById('deletePathBtn').style.display='block';document.getElementById('pathModal').classList.remove('hidden');document.getElementById('pathModal').classList.add('flex');if(c.length)map.fitBounds(L.latLngBounds(c.map(c=>[c[0],c[1]])),{padding:[50,50]});}}catch(e){}}
+async function editFootwalk(id){
+    try{
+        const r = await fetch('{{ route("footwalks.show", "") }}/' + id);
+        const d = await r.json();
+        if(d.success){
+            const f=d.data;
+            document.getElementById('pathId').value=f.id;
+            document.getElementById('pathName').value=f.name||'';
+            document.getElementById('pathType').value=f.type||'walkway';
+            document.getElementById('pathColor').value=f.color||'#3b82f6';
+            document.getElementById('pathWidth').value=f.width||2;
+            document.getElementById('pathDescription').value=f.description||'';
+            let c=[];
+            try{c=JSON.parse(f.coordinates);}catch(e){}
+            let len=0;
+            for(let i=0;i<c.length-1;i++)len+=calcDist(c[i][0],c[i][1],c[i+1][0],c[i+1][1]);
+            document.getElementById('pathLength').innerText=len.toFixed(2);
+            window.tempPathCoords=c;
+            document.getElementById('pathModalTitle').innerText='Edit Footwalk';
+            document.getElementById('deletePathBtn').style.display='block';
+            document.getElementById('pathModal').classList.remove('hidden');
+            document.getElementById('pathModal').classList.add('flex');
+            if(c.length)map.fitBounds(L.latLngBounds(c.map(c=>[c[0],c[1]])),{padding:[50,50]});
+        }
+    }catch(e){
+        console.error(e);
+    }
+}
+
 function deleteFootwalkItem(id){if(confirm('Delete this footwalk?'))deleteFootwalk(id);}
-async function deleteFootwalk(id){try{const el=document.getElementById(`path-item-${id}`);if(el)el.classList.add('deleting');if(drawnPaths[id]){map.removeLayer(drawnPaths[id]);delete drawnPaths[id];}const r=await fetch(`/api/footwalks/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}});const d=await r.json();if(d.success){footwalksData=footwalksData.filter(f=>f.id!=id);displayFootwalksList(footwalksData);showAllPathMarkers();findAndDisplayConnections();showToast('Deleted','success');}else{await loadFootwalks();}}catch(e){await loadFootwalks();}}
+
+async function deleteFootwalk(id){
+    try{
+        const el=document.getElementById(`path-item-${id}`);
+        if(el)el.classList.add('deleting');
+        if(drawnPaths[id]){map.removeLayer(drawnPaths[id]);delete drawnPaths[id];}
+        const r=await fetch('{{ route("footwalks.delete", "") }}/' + id, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrf
+            }
+        });
+        const d=await r.json();
+        if(d.success){
+            footwalksData=footwalksData.filter(f=>f.id!=id);
+            displayFootwalksList(footwalksData);
+            showAllPathMarkers();
+            findAndDisplayConnections();
+            showToast('Deleted','success');
+        }else{await loadFootwalks();}
+    }catch(e){await loadFootwalks();}
+}
+
 function deleteCurrentPath(){const id=document.getElementById('pathId').value;if(id&&confirm('Delete?')){deleteFootwalk(id);closePathModal();}}
 
 function closePathModal(){document.getElementById('pathModal').classList.add('hidden');document.getElementById('pathModal').classList.remove('flex');window.tempPathCoords=null;}
 function resetMapView(){map.setView([9.853,122.890],17);}
-function switchTab(tab){['offices','paths','connections'].forEach(t=>{document.getElementById(`${t}Tab`).classList.add('hidden');document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}Btn`).classList.remove('tab-active');});document.getElementById(`${tab}Tab`).classList.remove('hidden');document.getElementById(`tab${tab.charAt(0).toUpperCase()+tab.slice(1)}Btn`).classList.add('tab-active');if(tab==='connections')findAndDisplayConnections();}
+function switchTab(tab){['offices','paths','connections'].forEach(t=>{document.getElementById(`${t}Tab`).classList.add('hidden');document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}Btn`).classList.remove('tab-active');});document.getElementById(`${tab}Tab`).classList.remove('hidden');document.getElementById(`tab${tab.charAt(0).toUpperCase()+t.slice(1)}Btn`).classList.add('tab-active');if(tab==='connections')findAndDisplayConnections();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOfficeModal();closePathModal();if(isDrawing)resetDrawingState();}});
 document.getElementById('officeModal').addEventListener('click',function(e){if(e.target===this)closeOfficeModal();});
 document.getElementById('pathModal').addEventListener('click',function(e){if(e.target===this)closePathModal();});

@@ -1,5 +1,4 @@
 <?php
-// routes/api.php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -48,19 +47,6 @@ Route::post('/offices', function (Request $request) {
     } catch (Exception $e) {
         return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
-})->name('offices.store');
-
-Route::put('/offices/{id}', function (Request $request, $id) {
-    try {
-        $office = Office::where('office_id', $id)->first();
-        if ($office) {
-            $office->update($request->all());
-            return response()->json(['success' => true, 'data' => $office]);
-        }
-        return response()->json(['success' => false, 'message' => 'Office not found'], 404);
-    } catch (Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-    }
 })->name('offices.update');
 
 Route::delete('/offices/{id}', function ($id) {
@@ -72,7 +58,7 @@ Route::delete('/offices/{id}', function ($id) {
     return response()->json(['success' => false, 'message' => 'Office not found'], 404);
 })->name('offices.delete');
 
-// Footwalk API
+// Footwalk API (clean version - no duplicates)
 Route::get('/footwalks', function () {
     $footwalks = Footwalk::all();
     return response()->json(['success' => true, 'data' => $footwalks]);
@@ -88,6 +74,7 @@ Route::get('/footwalks/{id}', function ($id) {
 
 Route::post('/footwalks', function (Request $request) {
     try {
+        // Check if this is an update (has id) or create (no id)
         if ($request->has('id') && $request->id) {
             // Update existing footwalk
             $footwalk = Footwalk::find($request->id);
@@ -116,26 +103,6 @@ Route::post('/footwalks', function (Request $request) {
             ]);
             return response()->json(['success' => true, 'data' => $footwalk]);
         }
-    } catch (Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-    }
-})->name('footwalks.store');
-
-Route::put('/footwalks/{id}', function (Request $request, $id) {
-    try {
-        $footwalk = Footwalk::find($id);
-        if ($footwalk) {
-            $footwalk->update([
-                'name' => $request->name,
-                'type' => $request->type,
-                'color' => $request->color,
-                'width' => $request->width,
-                'coordinates' => $request->coordinates,
-                'description' => $request->description
-            ]);
-            return response()->json(['success' => true, 'data' => $footwalk]);
-        }
-        return response()->json(['success' => false, 'message' => 'Footwalk not found'], 404);
     } catch (Exception $e) {
         return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }

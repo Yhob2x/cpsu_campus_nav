@@ -139,3 +139,16 @@ Route::get('/dashboard', [LoginAuthController::class, 'dashboard'])->middleware(
 Route::get('/directory', function () {
     return view('directory');
 });
+
+// In routes/web.php
+Route::prefix('api')->group(function () {
+    Route::get('/offices', function () {
+        // ...
+    })->name('offices.index');
+    
+    Route::put('/offices/{id}', function (Request $request, $id) {
+        // ...
+    })->name('offices.update');
+    
+    // ... other routes
+});
